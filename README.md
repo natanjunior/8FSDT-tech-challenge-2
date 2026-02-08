@@ -173,7 +173,7 @@ npm run test:coverage
 ## 📝 Próximos Passos
 
 1. ✅ **Setup Inicial** (FASE 1) - Concluído
-2. ⏳ **Models** (FASE 2) - Criar 6 models + migrations
+2. ✅ **Database** (FASE 2) - Concluído (6 models + 19 índices + seeds)
 3. ⏳ **Services** (FASE 3) - Implementar lógica de negócio
 4. ⏳ **Middlewares** (FASE 4) - Auth + Authorize
 5. ⏳ **Controllers** (FASE 5) - Request/Response handlers
@@ -186,6 +186,9 @@ npm run test:coverage
 ## 📚 Documentação
 
 - [Planejamento Completo](plans/PLANEJAMENTO_TECH_CHALLENGE_v10.md)
+- [FASE 1 - Setup Completo](FASE_1_SETUP_COMPLETO.md)
+- [FASE 2 - Database Completo](FASE_2_DATABASE_COMPLETO.md)
+- [Diagrama do Banco de Dados](DATABASE_DIAGRAM.md)
 
 ## 👥 Equipe
 
