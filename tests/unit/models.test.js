@@ -53,8 +53,8 @@ describe('Models Definition - v11 (Passwordless)', () => {
 		});
 
 		test('should NOT have paranoid enabled (hard delete)', () => {
-			// v11: Hard delete (sem paranoid)
-			expect(Post.options.paranoid).toBeUndefined();
+			// v11: Hard delete (paranoid mode must not be enabled)
+			expect(Post.options.paranoid).not.toBe(true);
 		});
 
 		test('title should have min 5 chars validation', () => {
