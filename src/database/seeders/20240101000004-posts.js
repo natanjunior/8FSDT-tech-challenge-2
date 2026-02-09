@@ -17,7 +17,7 @@ Vetores são objetos matemáticos que possuem magnitude e direção. Eles podem 
 As aplicações da álgebra linear são vastas: computação gráfica, machine learning, física quântica, análise de dados, e muito mais. É uma ferramenta essencial para qualquer estudante de STEM.`,
 				author_id: '550e8400-e29b-41d4-a716-446655440001', // Prof. João Silva
 				discipline_id: '660e8400-e29b-41d4-a716-446655440001', // Matemática
-				status_id: '770e8400-e29b-41d4-a716-446655440002', // PUBLISHED
+				status: 'PUBLISHED',
 				published_at: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000), // 7 days ago
 				created_at: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000),
 				updated_at: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
@@ -32,7 +32,7 @@ Através da leitura, somos expostos a diferentes culturas, ideias e perspectivas
 Incentive seus alunos a ler diariamente, começando com livros adequados à sua faixa etária e aumentando gradualmente a complexidade. A leitura deve ser um prazer, não uma obrigação.`,
 				author_id: '550e8400-e29b-41d4-a716-446655440002', // Profa. Maria Santos
 				discipline_id: '660e8400-e29b-41d4-a716-446655440002', // Português
-				status_id: '770e8400-e29b-41d4-a716-446655440002', // PUBLISHED
+				status: 'PUBLISHED',
 				published_at: new Date(now.getTime() - 5 * 24 * 60 * 60 * 1000), // 5 days ago
 				created_at: new Date(now.getTime() - 5 * 24 * 60 * 60 * 1000),
 				updated_at: new Date(now.getTime() - 5 * 24 * 60 * 60 * 1000)
@@ -49,7 +49,7 @@ O processo ocorre principalmente nos cloroplastos das células vegetais, onde a 
 Este processo pode ser dividido em duas fases: fase clara (reações dependentes de luz) e fase escura (ciclo de Calvin). Compreender a fotossíntese é essencial para entender ecologia, mudanças climáticas e sustentabilidade.`,
 				author_id: '550e8400-e29b-41d4-a716-446655440001', // Prof. João Silva
 				discipline_id: '660e8400-e29b-41d4-a716-446655440003', // Ciências
-				status_id: '770e8400-e29b-41d4-a716-446655440002', // PUBLISHED
+				status: 'PUBLISHED',
 				published_at: new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000), // 3 days ago
 				created_at: new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000),
 				updated_at: new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000)
@@ -64,7 +64,7 @@ O Marechal Deodoro da Fonseca liderou o movimento que depôs Dom Pedro II, últi
 A transição para a república trouxe mudanças significativas na estrutura política do país, estabelecendo o federalismo e a separação entre Igreja e Estado. Compreender este período é fundamental para entender o Brasil contemporâneo.`,
 				author_id: '550e8400-e29b-41d4-a716-446655440002', // Profa. Maria Santos
 				discipline_id: '660e8400-e29b-41d4-a716-446655440004', // História
-				status_id: '770e8400-e29b-41d4-a716-446655440002', // PUBLISHED
+				status: 'PUBLISHED',
 				published_at: new Date(now.getTime() - 1 * 24 * 60 * 60 * 1000), // 1 day ago
 				created_at: new Date(now.getTime() - 1 * 24 * 60 * 60 * 1000),
 				updated_at: new Date(now.getTime() - 1 * 24 * 60 * 60 * 1000)
@@ -81,7 +81,7 @@ Jogos de tabuleiro e aplicativos educacionais também são ferramentas valiosas.
 Este post está em modo rascunho para revisão antes da publicação.`,
 				author_id: '550e8400-e29b-41d4-a716-446655440001', // Prof. João Silva
 				discipline_id: '660e8400-e29b-41d4-a716-446655440001', // Matemática
-				status_id: '770e8400-e29b-41d4-a716-446655440001', // DRAFT
+				status: 'DRAFT',
 				published_at: null,
 				created_at: new Date(),
 				updated_at: new Date()

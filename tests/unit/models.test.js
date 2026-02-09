@@ -1,7 +1,7 @@
 // Tests for Sequelize Models (v11 - Passwordless)
 // Run with: npm test tests/unit/models.test.js
 
-const { User, Post, Discipline, PostStatus, PostRead, UserSession } = require('../../src/models');
+const { User, Post, Discipline, PostRead, UserSession } = require('../../src/models');
 
 describe('Models Definition - v11 (Passwordless)', () => {
 	describe('User Model', () => {
@@ -30,7 +30,7 @@ describe('Models Definition - v11 (Passwordless)', () => {
 	});
 
 	describe('Post Model', () => {
-		test('should have correct attributes (WITHOUT deleted_at)', () => {
+		test('should have correct attributes (WITHOUT deleted_at, WITH status ENUM)', () => {
 			const attributes = Object.keys(Post.rawAttributes);
 
 			expect(attributes).toContain('id');
@@ -38,23 +38,31 @@ describe('Models Definition - v11 (Passwordless)', () => {
 			expect(attributes).toContain('content');
 			expect(attributes).toContain('author_id');
 			expect(attributes).toContain('discipline_id');
-			expect(attributes).toContain('status_id');
+			expect(attributes).toContain('status'); // v12: status ENUM field
 			expect(attributes).toContain('published_at');
 
 			// v11: SEM deleted_at (hard delete)!
 			expect(attributes).not.toContain('deleted_at');
+			// v12: SEM status_id (ENUM direto)!
+			expect(attributes).not.toContain('status_id');
 		});
 
 		test('should have correct associations', () => {
 			expect(Post.associations.author).toBeDefined();
 			expect(Post.associations.discipline).toBeDefined();
-			expect(Post.associations.status).toBeDefined();
 			expect(Post.associations.reads).toBeDefined();
+			// v12: NO status association (direct ENUM field)
 		});
 
 		test('should NOT have paranoid enabled (hard delete)', () => {
 			// v11: Hard delete (paranoid mode must not be enabled)
 			expect(Post.options.paranoid).not.toBe(true);
+		});
+
+		test('status should be ENUM with DRAFT, PUBLISHED, ARCHIVED', () => {
+			// v12: status is now a direct ENUM field
+			const statusType = Post.rawAttributes.status.type;
+			expect(statusType.values).toEqual(['DRAFT', 'PUBLISHED', 'ARCHIVED']);
 		});
 
 		test('title should have min 5 chars validation', () => {
@@ -74,25 +82,6 @@ describe('Models Definition - v11 (Passwordless)', () => {
 
 		test('should have correct associations', () => {
 			expect(Discipline.associations.posts).toBeDefined();
-		});
-	});
-
-	describe('PostStatus Model', () => {
-		test('should have correct attributes', () => {
-			const attributes = Object.keys(PostStatus.rawAttributes);
-
-			expect(attributes).toContain('id');
-			expect(attributes).toContain('label');
-		});
-
-		test('should have correct associations', () => {
-			expect(PostStatus.associations.posts).toBeDefined();
-		});
-
-		test('label should only accept DRAFT, PUBLISHED, ARCHIVED', () => {
-			const labelValidation = PostStatus.rawAttributes.label.validate;
-			expect(labelValidation.isIn).toBeDefined();
-			expect(labelValidation.isIn.args).toEqual([['DRAFT', 'PUBLISHED', 'ARCHIVED']]);
 		});
 	});
 
@@ -136,22 +125,23 @@ describe('Models Definition - v11 (Passwordless)', () => {
 	});
 });
 
-describe('Model Count - v11', () => {
-	test('should have exactly 6 models (NO Comment model)', () => {
+describe('Model Count - v12', () => {
+	test('should have exactly 5 models (NO Comment, NO PostStatus)', () => {
 		const models = require('../../src/models');
 		const modelNames = Object.keys(models).filter(
 			key => key !== 'sequelize' && key !== 'Sequelize'
 		);
 
-		// v11: 6 models (User, Post, PostRead, UserSession, Discipline, PostStatus)
-		// SEM Comment!
-		expect(modelNames).toHaveLength(6);
+		// v12: 5 models (User, Post, PostRead, UserSession, Discipline)
+		// SEM Comment (desde v11)!
+		// SEM PostStatus (v12 - status é ENUM direto no Post)!
+		expect(modelNames).toHaveLength(5);
 		expect(modelNames).toContain('User');
 		expect(modelNames).toContain('Post');
 		expect(modelNames).toContain('PostRead');
 		expect(modelNames).toContain('UserSession');
 		expect(modelNames).toContain('Discipline');
-		expect(modelNames).toContain('PostStatus');
+		expect(modelNames).not.toContain('PostStatus');
 		expect(modelNames).not.toContain('Comment');
 	});
 });

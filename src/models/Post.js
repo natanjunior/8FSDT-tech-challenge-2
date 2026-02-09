@@ -17,12 +17,6 @@ module.exports = (sequelize, DataTypes) => {
 				as: 'discipline'
 			});
 
-			// Post belongsTo PostStatus
-			Post.belongsTo(models.PostStatus, {
-				foreignKey: 'status_id',
-				as: 'status'
-			});
-
 			// Post hasMany PostReads
 			Post.hasMany(models.PostRead, {
 				foreignKey: 'post_id',
@@ -85,15 +79,20 @@ module.exports = (sequelize, DataTypes) => {
 				onUpdate: 'CASCADE',
 				onDelete: 'RESTRICT'
 			},
-			status_id: {
-				type: DataTypes.UUID,
-				allowNull: true,
-				references: {
-					model: 'post_status',
-					key: 'id'
+			status: {
+				type: DataTypes.ENUM('DRAFT', 'PUBLISHED', 'ARCHIVED'),
+				allowNull: false,
+				defaultValue: 'DRAFT',
+				set(value) {
+					// Convert to uppercase to be case-insensitive
+					this.setDataValue('status', value ? value.toUpperCase() : value);
 				},
-				onUpdate: 'CASCADE',
-				onDelete: 'RESTRICT'
+				validate: {
+					isIn: {
+						args: [['DRAFT', 'PUBLISHED', 'ARCHIVED']],
+						msg: 'Status deve ser DRAFT ou PUBLISHED'
+					}
+				}
 			},
 			published_at: {
 				type: DataTypes.DATE,
