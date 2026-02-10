@@ -772,14 +772,48 @@ npm start            # Servidor em modo produção
 
 ### Testes
 
+#### Configuração do Ambiente de Testes
+
+**1. Criar arquivo .env.test** (copiar do .env.test.example):
 ```bash
-npm test                   # Todos os testes
-npm run test:unit          # Apenas testes unitários
-npm run test:integration   # Apenas testes de integração
-npm run test:watch         # Watch mode
-npm run test:coverage      # Com cobertura
-npm run test:ci            # CI mode (sem watch)
+cp .env.test.example .env.test
+# Editar .env.test com suas configurações
 ```
+
+**2. Criar banco de dados de teste:**
+
+Se seu PostgreSQL roda na **porta 5432** (padrão):
+```bash
+createdb -U postgres blog_api_test
+```
+
+Se seu PostgreSQL roda em **outra porta** (ex: 5433):
+```bash
+createdb -p 5433 -U postgres blog_api_test
+# OU usando psql:
+psql -p 5433 -U postgres -c "CREATE DATABASE blog_api_test;"
+```
+
+Se estiver usando **Docker**:
+```bash
+docker exec -it postgres-container psql -U postgres -c "CREATE DATABASE blog_api_test;"
+```
+
+**3. Rodar os testes:**
+```bash
+npm test                   # Todos os testes (unit + integration)
+npm run test:unit          # Apenas testes unitários
+npm run test:integration   # Apenas testes de integração (E2E)
+npm run test:watch         # Watch mode (desenvolvimento)
+npm run test:coverage      # Com relatório de cobertura
+npm run test:ci            # CI mode (para pipelines)
+```
+
+**Cobertura Mínima:** 20% (configurado em jest.config.js)
+
+**Total de Testes:** ~67 testes
+- Unitários: 33 testes (services, middlewares, models)
+- Integração: 34 testes (end-to-end da API)
 
 ### Banco de Dados
 
@@ -1005,9 +1039,9 @@ MIT License - Projeto Educacional
 2. ✅ **Database** (FASE 2) - Concluído
 3. ✅ **Auth Completo** (FASE 3) - Concluído
 4. ✅ **Posts CRUD** (FASE 4) - Concluído
-5. ⏳ **Post Reads + Disciplines** (FASE 5) - Em andamento
-6. ⏳ **Integração Final + Testes E2E** (FASE 6)
-7. ⏳ **Docker** (FASE 7)
+5. ✅ **Post Reads + Disciplines** (FASE 5) - Em validação
+6. ✅ **Integração Final + Testes E2E** (FASE 6) - Em validação
+7. ⏳ **Docker** (FASE 7) - Em andamento
 8. ⏳ **CI/CD** (FASE 8)
 9. ⏳ **Performance** (FASE 9)
 10. ⏳ **Swagger** (FASE 10)

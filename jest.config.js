@@ -19,9 +19,11 @@ module.exports = {
   collectCoverageFrom: [
     'src/**/*.js',
     '!src/server.js',
+    '!src/models/index.js',
     '!src/database/migrations/**',
     '!src/database/seeders/**',
-    '!src/config/**'
+    '!src/config/**',
+    '!**/node_modules/**'
   ],
 
   // Test match patterns

@@ -1,5 +1,4 @@
-const Post = require('../models/Post');
-const PostRead = require('../models/PostRead');
+const { Post, PostRead } = require('../models');
 
 class PostReadService {
   /**

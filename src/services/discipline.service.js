@@ -1,4 +1,4 @@
-const Discipline = require('../models/Discipline');
+const { Discipline } = require('../models');
 
 class DisciplineService {
   /**
