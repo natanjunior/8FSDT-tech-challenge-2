@@ -1,28 +1,20 @@
-# Node modules
+# Dependencies
 node_modules/
 npm-debug.log
 yarn-error.log
 
+# Environment
+.env
+.env.local
+.env.test
+
+# Tests
+coverage/
+tests/
+
 # Git
 .git/
 .gitignore
-
-# Environment files
-.env
-.env.*
-!.env.example
-
-# Tests and coverage
-tests/
-coverage/
-*.test.js
-*.spec.js
-
-# Documentation and plans
-*.md
-!README.md
-plans/
-docs/
 
 # IDE
 .vscode/
@@ -30,14 +22,22 @@ docs/
 *.swp
 *.swo
 
-# OS files
+# OS
 .DS_Store
 Thumbs.db
 
-# Temporary files
-*.tmp
-*.log
+# Documentation
+*.md
+!README.md
 
-# Build files (if any)
-dist/
-build/
+# CI/CD
+.github/
+
+# Docker
+Dockerfile
+docker-compose.yml
+docker-compose.prod.yml
+.dockerignore
+
+# Plans
+plans/

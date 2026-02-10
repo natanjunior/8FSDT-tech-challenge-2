@@ -1039,10 +1039,10 @@ MIT License - Projeto Educacional
 2. ✅ **Database** (FASE 2) - Concluído
 3. ✅ **Auth Completo** (FASE 3) - Concluído
 4. ✅ **Posts CRUD** (FASE 4) - Concluído
-5. ✅ **Post Reads + Disciplines** (FASE 5) - Em validação
-6. ✅ **Integração Final + Testes E2E** (FASE 6) - Em validação
-7. ⏳ **Docker** (FASE 7) - Em andamento
-8. ⏳ **CI/CD** (FASE 8)
+5. 🔎 **Post Reads + Disciplines** (FASE 5) - Em validação
+6. 🔎 **Integração Final + Testes E2E** (FASE 6) - Em validação
+7. 🔎 **Docker** (FASE 7) - Em validação
+8. 🛠️ **CI/CD** (FASE 8) - Em andamento
 9. ⏳ **Performance** (FASE 9)
 10. ⏳ **Swagger** (FASE 10)
 11. ⏳ **Deploy** (FASE 11)
