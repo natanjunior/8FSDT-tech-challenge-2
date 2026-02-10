@@ -4,6 +4,7 @@ const express = require('express');
 const cors = require('cors');
 const authRoutes = require('./routes/auth.routes');
 const postRoutes = require('./routes/post.routes');
+const disciplineRoutes = require('./routes/discipline.routes');
 
 const app = express();
 
@@ -14,6 +15,7 @@ app.use(express.json());
 // Routes
 app.use('/auth', authRoutes);
 app.use('/posts', postRoutes);
+app.use('/disciplines', disciplineRoutes);
 
 // Health check
 app.get('/health', (req, res) => {

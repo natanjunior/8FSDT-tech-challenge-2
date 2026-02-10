@@ -5,6 +5,7 @@ const router = express.Router();
 const PostController = require('../controllers/post.controller');
 const { authenticate } = require('../middlewares/authenticate');
 const { authorize } = require('../middlewares/authorize');
+const postReadRoutes = require('./postRead.routes');
 
 /**
  * Middleware de autenticação opcional
@@ -72,5 +73,8 @@ router.put('/:id', authenticate, authorize(['TEACHER']), (req, res) =>
 router.delete('/:id', authenticate, authorize(['TEACHER']), (req, res) =>
 	PostController.deletePost(req, res)
 );
+
+// Montar sub-rotas de post reads
+router.use('/', postReadRoutes);
 
 module.exports = router;
