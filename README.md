@@ -4,6 +4,11 @@
 
 **Plataforma para Professores da Rede Pública Compartilharem Conteúdo Educacional**
 
+[![CI Pipeline](https://github.com/seu-usuario/8FSDT-tech-challenge-2/actions/workflows/ci.yml/badge.svg)](https://github.com/seu-usuario/8FSDT-tech-challenge-2/actions/workflows/ci.yml)
+[![CD Pipeline](https://github.com/seu-usuario/8FSDT-tech-challenge-2/actions/workflows/cd.yml/badge.svg)](https://github.com/seu-usuario/8FSDT-tech-challenge-2/actions/workflows/cd.yml)
+[![codecov](https://codecov.io/gh/seu-usuario/8FSDT-tech-challenge-2/branch/main/graph/badge.svg)](https://codecov.io/gh/seu-usuario/8FSDT-tech-challenge-2)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 [![Node.js](https://img.shields.io/badge/Node.js-18+-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15+-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
 [![Express](https://img.shields.io/badge/Express-4.18+-000000?logo=express&logoColor=white)](https://expressjs.com/)
@@ -1042,8 +1047,8 @@ MIT License - Projeto Educacional
 5. 🔎 **Post Reads + Disciplines** (FASE 5) - Em validação
 6. 🔎 **Integração Final + Testes E2E** (FASE 6) - Em validação
 7. 🔎 **Docker** (FASE 7) - Em validação
-8. 🛠️ **CI/CD** (FASE 8) - Em andamento
-9. ⏳ **Performance** (FASE 9)
+8. 🔎 **CI/CD** (FASE 8) - Em validação
+9. 🛠️ **Performance** (FASE 9) - Em andamento
 10. ⏳ **Swagger** (FASE 10)
 11. ⏳ **Deploy** (FASE 11)
 12. ⏳ **Buffer & QA** (FASE 12)
