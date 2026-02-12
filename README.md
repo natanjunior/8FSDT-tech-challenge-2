@@ -1049,7 +1049,7 @@ MIT License - Projeto Educacional
 7. 🔎 **Docker** (FASE 7) - Em validação
 8. 🔎 **CI/CD** (FASE 8) - Em validação
 9. 🛠️ **Performance** (FASE 9) - Em andamento
-10. ⏳ **Swagger** (FASE 10)
+10. 🔎 **Swagger** (FASE 10) - Em validação
 11. ⏳ **Deploy** (FASE 11)
 12. ⏳ **Buffer & QA** (FASE 12)
 13. ⏳ **Documentação final** (FASE 13)

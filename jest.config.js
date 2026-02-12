@@ -1,11 +1,9 @@
-module.exports = {
-  // Test environment
+const baseConfig = {
   testEnvironment: 'node',
-
-  // Coverage directory
+  clearMocks: true,
+  verbose: true,
+  testTimeout: 10000,
   coverageDirectory: 'coverage',
-
-  // Coverage thresholds (20% minimum)
   coverageThreshold: {
     global: {
       branches: 20,
@@ -14,8 +12,6 @@ module.exports = {
       statements: 20
     }
   },
-
-  // Files to collect coverage from
   collectCoverageFrom: [
     'src/**/*.js',
     '!src/server.js',
@@ -25,30 +21,29 @@ module.exports = {
     '!src/config/**',
     '!**/node_modules/**'
   ],
-
-  // Test match patterns
-  testMatch: [
-    '**/tests/**/*.test.js',
-    '**/tests/**/*.spec.js'
-  ],
-
-  // Setup files
-  setupFilesAfterEnv: ['<rootDir>/tests/setup.js'],
-
-  // Clear mocks between tests
-  clearMocks: true,
-
-  // Verbose output
-  verbose: true,
-
-  // Test timeout (10 seconds)
-  testTimeout: 10000,
-
-  // Coverage reporters
   coverageReporters: [
     'text',
     'text-summary',
     'lcov',
     'html'
+  ]
+};
+
+module.exports = {
+  ...baseConfig,
+  projects: [
+    {
+      ...baseConfig,
+      displayName: 'unit',
+      testMatch: ['**/tests/unit/**/*.test.js', '**/tests/unit/**/*.spec.js'],
+      // Unit tests: NO database setup (use mocks)
+    },
+    {
+      ...baseConfig,
+      displayName: 'integration',
+      testMatch: ['**/tests/integration/**/*.test.js', '**/tests/integration/**/*.spec.js'],
+      // Integration tests: WITH database setup
+      setupFilesAfterEnv: ['<rootDir>/tests/setup.js'],
+    }
   ]
 };

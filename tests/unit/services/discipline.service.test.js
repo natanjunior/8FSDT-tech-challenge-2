@@ -2,12 +2,14 @@
 // Run with: npm test tests/unit/services/discipline.service.test.js
 
 // Mock dependencies
-jest.mock('../../../src/models/Discipline', () => ({
-	findAll: jest.fn()
+jest.mock('../../../src/models', () => ({
+	Discipline: {
+		findAll: jest.fn()
+	}
 }));
 
 const DisciplineService = require('../../../src/services/discipline.service');
-const Discipline = require('../../../src/models/Discipline');
+const { Discipline } = require('../../../src/models');
 
 describe('DisciplineService - Disciplines', () => {
 	afterEach(() => {

@@ -2,18 +2,18 @@
 // Run with: npm test tests/unit/services/postRead.service.test.js
 
 // Mock dependencies
-jest.mock('../../../src/models/Post', () => ({
-	findByPk: jest.fn()
-}));
-
-jest.mock('../../../src/models/PostRead', () => ({
-	findOne: jest.fn(),
-	create: jest.fn()
+jest.mock('../../../src/models', () => ({
+	Post: {
+		findByPk: jest.fn()
+	},
+	PostRead: {
+		findOne: jest.fn(),
+		create: jest.fn()
+	}
 }));
 
 const PostReadService = require('../../../src/services/postRead.service');
-const Post = require('../../../src/models/Post');
-const PostRead = require('../../../src/models/PostRead');
+const { Post, PostRead } = require('../../../src/models');
 
 describe('PostReadService - Post Reads', () => {
 	afterEach(() => {
