@@ -2,6 +2,8 @@
 
 const express = require('express');
 const cors = require('cors');
+const swaggerUi = require('swagger-ui-express');
+const swaggerSpec = require('./config/swagger');
 const authRoutes = require('./routes/auth.routes');
 const postRoutes = require('./routes/post.routes');
 const disciplineRoutes = require('./routes/discipline.routes');
@@ -16,6 +18,16 @@ app.use(express.json());
 app.use('/auth', authRoutes);
 app.use('/posts', postRoutes);
 app.use('/disciplines', disciplineRoutes);
+
+// Swagger Documentation
+app.use(
+	'/api-docs',
+	swaggerUi.serve,
+	swaggerUi.setup(swaggerSpec, {
+		customCss: '.swagger-ui .topbar { display: none }',
+		customSiteTitle: 'Tech Challenge API Docs'
+	})
+);
 
 // Health check
 app.get('/health', (req, res) => {
