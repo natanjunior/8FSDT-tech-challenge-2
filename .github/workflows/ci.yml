@@ -35,7 +35,7 @@ jobs:
 
       - name: Upload test results
         if: always()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: unit-test-results
           path: coverage/
@@ -92,7 +92,7 @@ jobs:
 
       - name: Upload test results
         if: always()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: integration-test-results
           path: coverage/
@@ -159,7 +159,7 @@ jobs:
           echo "✅ Coverage $COVERAGE% meets 20% threshold"
 
       - name: Upload coverage to Codecov (Optional)
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v4
         continue-on-error: true
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -169,7 +169,7 @@ jobs:
           fail_ci_if_error: false
 
       - name: Upload coverage report
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: coverage-report
           path: coverage/
