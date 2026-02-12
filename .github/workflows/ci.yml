@@ -203,10 +203,13 @@ jobs:
           docker build -t blog-api:test .
           docker run -d --name test-api -p 3030:3030 \
             -e NODE_ENV=production \
+            -e PORT=3030 \
             -e DATABASE_URL=postgresql://test:test@localhost:5432/test \
             -e JWT_SECRET=test_secret_super_seguro_minimo_32_caracteres \
+            -e DB_SSL=false \
             blog-api:test
           sleep 5
+          docker logs test-api
           curl -f http://localhost:3030/health || exit 1
           docker stop test-api
           docker rm test-api
