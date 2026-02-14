@@ -4,9 +4,9 @@
 
 **Plataforma para Professores da Rede Pública Compartilharem Conteúdo Educacional**
 
-[![CI Pipeline](https://github.com/seu-usuario/8FSDT-tech-challenge-2/actions/workflows/ci.yml/badge.svg)](https://github.com/seu-usuario/8FSDT-tech-challenge-2/actions/workflows/ci.yml)
-[![CD Pipeline](https://github.com/seu-usuario/8FSDT-tech-challenge-2/actions/workflows/cd.yml/badge.svg)](https://github.com/seu-usuario/8FSDT-tech-challenge-2/actions/workflows/cd.yml)
-[![codecov](https://codecov.io/gh/seu-usuario/8FSDT-tech-challenge-2/branch/main/graph/badge.svg)](https://codecov.io/gh/seu-usuario/8FSDT-tech-challenge-2)
+[![CI Pipeline](https://github.com/natanjunior/8FSDT-tech-challenge-2/actions/workflows/ci.yml/badge.svg)](https://github.com/natanjunior/8FSDT-tech-challenge-2/actions/workflows/ci.yml)
+[![CD Pipeline](https://github.com/natanjunior/8FSDT-tech-challenge-2/actions/workflows/cd.yml/badge.svg)](https://github.com/natanjunior/8FSDT-tech-challenge-2/actions/workflows/cd.yml)
+[![codecov](https://codecov.io/gh/natanjunior/8FSDT-tech-challenge-2/branch/main/graph/badge.svg)](https://codecov.io/gh/natanjunior/8FSDT-tech-challenge-2)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 [![Node.js](https://img.shields.io/badge/Node.js-18+-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
