@@ -26,6 +26,11 @@
     "docker:clean": "docker-compose down -v",
     "docker:prod:up": "docker-compose -f docker-compose.prod.yml up -d",
     "docker:prod:down": "docker-compose -f docker-compose.prod.yml down",
+    "perf:analyze": "psql -U postgres -d blog_api_dev -p 5433 -f scripts/performance/analyze-indexes.sql > reports/analyze-indexes.txt",
+    "perf:queries": "psql -U postgres -d blog_api_dev -p 5433 -f scripts/performance/query-optimization.sql > reports/query-optimization.txt",
+    "perf:config": "psql -U postgres -d blog_api_dev -p 5433 -f scripts/performance/postgres-config.sql",
+    "perf:benchmark": "node scripts/performance/benchmark-endpoints.js",
+    "perf:all": "npm run perf:analyze && npm run perf:queries && npm run perf:benchmark",
     "lint": "eslint src/**/*.js tests/**/*.js",
     "format": "prettier --write \"src/**/*.js\" \"tests/**/*.js\""
   },

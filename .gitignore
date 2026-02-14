@@ -11,6 +11,9 @@ node_modules/
 coverage/
 *.lcov
 
+# Performance reports
+reports/
+
 # Build outputs
 dist/
 build/
