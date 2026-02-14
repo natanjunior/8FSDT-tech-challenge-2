@@ -99,17 +99,11 @@ class PostService {
 	 * @param {Object} data - { title, content, discipline_id, status }
 	 * @param {string} userId - UUID do autor
 	 * @returns {Promise<Object>} Post criado
+	 *
+	 * Nota: Validações feitas pelo middleware express-validator
 	 */
 	async createPost(data, userId) {
-		// Validações
-		if (!data.title || data.title.length < 5) {
-			throw new Error('Título deve ter no mínimo 5 caracteres');
-		}
-
-		if (!data.content || data.content.length < 10) {
-			throw new Error('Conteúdo deve ter no mínimo 10 caracteres');
-		}
-
+		// Dados já validados e sanitizados!
 		// Verificar se status é PUBLISHED para definir published_at
 		let publishedAt = null;
 		if (data.status === 'PUBLISHED') {

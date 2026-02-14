@@ -81,9 +81,13 @@ Sistema de blogging educacional desenvolvido em Node.js com PostgreSQL, permitin
 │   ├── controllers/         # Request/Response handlers
 │   │   ├── auth.controller.js
 │   │   └── post.controller.js
+│   ├── validators/          # Validação centralizada com express-validator
+│   │   ├── post.validator.js
+│   │   └── auth.validator.js
 │   ├── middlewares/         # Middlewares (auth, authorize, errorHandler)
 │   │   ├── authenticate.js
 │   │   ├── authorize.js
+│   │   ├── validate.js      # Helper para processar erros de validação
 │   │   └── errorHandler.js
 │   ├── routes/              # Definição de rotas
 │   │   ├── auth.routes.js
@@ -145,8 +149,9 @@ graph TB
 
 ### Camadas
 
-1. **API Layer** (Rotas, Middlewares, Controllers)
+1. **API Layer** (Rotas, Middlewares, Controllers, Validators)
    - Recebe requisições HTTP
+   - Valida dados de entrada (express-validator)
    - Valida autenticação e autorização
    - Formata respostas
    - Trata erros
@@ -166,6 +171,7 @@ graph TB
 - **MVC Modificado**: Controllers → Services → Models
 - **Dependency Injection**: Services injetados nos Controllers
 - **Middleware Pattern**: Autenticação, autorização e tratamento de erros
+- **Validation Layer**: Validação centralizada com express-validator (fail-fast)
 - **Repository Pattern**: Models Sequelize como repositories
 
 ---

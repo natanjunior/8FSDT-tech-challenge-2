@@ -10,19 +10,13 @@ class AuthController {
 	 * Login passwordless (apenas com email)
 	 * POST /auth/login
 	 * Body: { email }
+	 *
+	 * Nota: Validação feita pelo middleware express-validator
 	 */
 	async login(req, res) {
 		try {
-			const { email } = req.body;
-
-			// Validar email presente
-			if (!email) {
-				return res.status(400).json({ error: 'Email é obrigatório' });
-			}
-
-			// Chamar service
-			const result = await AuthService.login(email);
-
+			// Email já validado e normalizado pelo middleware!
+			const result = await AuthService.login(req.body.email);
 			return res.status(200).json(result);
 		} catch (error) {
 			// Email não cadastrado
@@ -31,7 +25,7 @@ class AuthController {
 			}
 
 			// Outros erros
-			return res.status(400).json({ error: error.message });
+			return res.status(500).json({ error: error.message });
 		}
 	}
 

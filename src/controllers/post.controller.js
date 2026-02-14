@@ -49,36 +49,15 @@ class PostController {
 	 * POST /posts
 	 * Body: { title, content, discipline_id, status }
 	 * Header: Authorization: Bearer <token> (obrigatório - TEACHER)
+	 *
+	 * Nota: Validação feita pelo middleware express-validator
 	 */
 	async createPost(req, res) {
 		try {
-			const { title, content, discipline_id, status } = req.body;
-			const userId = req.user.id;
-
-			// Validar campos obrigatórios
-			if (!title) {
-				return res.status(400).json({ error: 'Título é obrigatório' });
-			}
-
-			if (!content) {
-				return res.status(400).json({ error: 'Conteúdo é obrigatório' });
-			}
-
-			const post = await PostService.createPost(
-				{ title, content, discipline_id, status },
-				userId
-			);
-
+			// Dados já validados e sanitizados pelo middleware!
+			const post = await PostService.createPost(req.body, req.user.id);
 			return res.status(201).json(post);
 		} catch (error) {
-			// Erros de validação
-			if (
-				error.message.includes('mínimo') ||
-				error.message.includes('obrigatório')
-			) {
-				return res.status(400).json({ error: error.message });
-			}
-
 			return res.status(500).json({ error: error.message });
 		}
 	}

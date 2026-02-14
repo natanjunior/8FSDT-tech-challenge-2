@@ -5,6 +5,15 @@ const router = express.Router();
 const PostController = require('../controllers/post.controller');
 const { authenticate } = require('../middlewares/authenticate');
 const { authorize } = require('../middlewares/authorize');
+const { validate } = require('../middlewares/validate');
+const {
+	createPostValidator,
+	updatePostValidator,
+	getPostValidator,
+	deletePostValidator,
+	listPostsValidator,
+	searchPostsValidator
+} = require('../validators/post.validator');
 const postReadRoutes = require('./postRead.routes');
 
 /**
@@ -63,7 +72,9 @@ const optionalAuth = (req, res, next) => {
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.get('/', optionalAuth, (req, res) => PostController.listPosts(req, res));
+router.get('/', optionalAuth, listPostsValidator, validate, (req, res) =>
+	PostController.listPosts(req, res)
+);
 
 /**
  * @swagger
@@ -119,7 +130,9 @@ router.get('/', optionalAuth, (req, res) => PostController.listPosts(req, res));
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.get('/search', optionalAuth, (req, res) => PostController.searchPosts(req, res));
+router.get('/search', optionalAuth, searchPostsValidator, validate, (req, res) =>
+	PostController.searchPosts(req, res)
+);
 
 /**
  * @swagger
@@ -158,7 +171,9 @@ router.get('/search', optionalAuth, (req, res) => PostController.searchPosts(req
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.get('/:id', authenticate, (req, res) => PostController.getPostById(req, res));
+router.get('/:id', authenticate, getPostValidator, validate, (req, res) =>
+	PostController.getPostById(req, res)
+);
 
 /**
  * @swagger
@@ -201,8 +216,13 @@ router.get('/:id', authenticate, (req, res) => PostController.getPostById(req, r
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.post('/', authenticate, authorize(['TEACHER']), (req, res) =>
-	PostController.createPost(req, res)
+router.post(
+	'/',
+	authenticate,
+	authorize(['TEACHER']),
+	createPostValidator,
+	validate,
+	(req, res) => PostController.createPost(req, res)
 );
 
 /**
@@ -262,8 +282,13 @@ router.post('/', authenticate, authorize(['TEACHER']), (req, res) =>
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.put('/:id', authenticate, authorize(['TEACHER']), (req, res) =>
-	PostController.updatePost(req, res)
+router.put(
+	'/:id',
+	authenticate,
+	authorize(['TEACHER']),
+	updatePostValidator,
+	validate,
+	(req, res) => PostController.updatePost(req, res)
 );
 
 /**
@@ -307,8 +332,13 @@ router.put('/:id', authenticate, authorize(['TEACHER']), (req, res) =>
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.delete('/:id', authenticate, authorize(['TEACHER']), (req, res) =>
-	PostController.deletePost(req, res)
+router.delete(
+	'/:id',
+	authenticate,
+	authorize(['TEACHER']),
+	deletePostValidator,
+	validate,
+	(req, res) => PostController.deletePost(req, res)
 );
 
 // Montar sub-rotas de post reads
