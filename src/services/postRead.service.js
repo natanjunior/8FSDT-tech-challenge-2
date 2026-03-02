@@ -1,4 +1,7 @@
-const { Post, PostRead } = require('../models');
+'use strict';
+
+const PostRepository = require('../repositories/post.repository');
+const PostReadRepository = require('../repositories/postRead.repository');
 
 class PostReadService {
   /**
@@ -9,15 +12,13 @@ class PostReadService {
    */
   async markAsRead(postId, userId) {
     // Verificar se post existe
-    const post = await Post.findByPk(postId);
+    const post = await PostRepository.findById(postId);
     if (!post) {
       throw new Error('Post não encontrado');
     }
 
     // Buscar registro existente
-    const existingRead = await PostRead.findOne({
-      where: { post_id: postId, user_id: userId }
-    });
+    const existingRead = await PostReadRepository.findByPostAndUser(postId, userId);
 
     // Se já existe, retornar registro existente (idempotente)
     if (existingRead) {
@@ -30,7 +31,7 @@ class PostReadService {
     }
 
     // Se não existe, criar novo registro
-    const newRead = await PostRead.create({
+    const newRead = await PostReadRepository.create({
       post_id: postId,
       user_id: userId,
       read_at: new Date()
@@ -51,9 +52,7 @@ class PostReadService {
    * @returns {Object} { read: boolean, read_at: Date|null }
    */
   async checkIfRead(postId, userId) {
-    const record = await PostRead.findOne({
-      where: { post_id: postId, user_id: userId }
-    });
+    const record = await PostReadRepository.findByPostAndUser(postId, userId);
 
     if (record) {
       return {

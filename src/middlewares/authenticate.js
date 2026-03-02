@@ -1,7 +1,7 @@
 'use strict';
 
 const AuthService = require('../services/auth.service');
-const { UserSession } = require('../models');
+const UserSessionRepository = require('../repositories/userSession.repository');
 
 /**
  * Middleware de autenticação
@@ -27,7 +27,7 @@ async function authenticate(req, res, next) {
 		const decoded = AuthService.verifyToken(token);
 
 		// 4. Buscar sessão no banco
-		const session = await UserSession.findByPk(decoded.sessionId);
+		const session = await UserSessionRepository.findById(decoded.sessionId);
 
 		if (!session) {
 			return res.status(401).json({ error: 'Sessão inválida' });
@@ -36,7 +36,7 @@ async function authenticate(req, res, next) {
 		// 5. Verificar expiração da sessão
 		if (new Date() > session.expires_at) {
 			// Deletar sessão expirada
-			await session.destroy();
+			await UserSessionRepository.delete(decoded.sessionId);
 			return res.status(401).json({ error: 'Sessão expirada' });
 		}
 

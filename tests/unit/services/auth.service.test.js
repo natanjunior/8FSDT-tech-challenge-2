@@ -7,17 +7,12 @@ const { v4: uuidv4 } = require('uuid');
 // Mock dependencies
 jest.mock('jsonwebtoken');
 jest.mock('uuid');
-jest.mock('../../../src/models', () => ({
-	User: {
-		findOne: jest.fn()
-	},
-	UserSession: {
-		create: jest.fn()
-	}
-}));
+jest.mock('../../../src/repositories/user.repository');
+jest.mock('../../../src/repositories/userSession.repository');
 
 const AuthService = require('../../../src/services/auth.service');
-const { User, UserSession } = require('../../../src/models');
+const UserRepository = require('../../../src/repositories/user.repository');
+const UserSessionRepository = require('../../../src/repositories/userSession.repository');
 
 describe('AuthService - Passwordless Authentication', () => {
 	// Mock environment variable
@@ -42,18 +37,16 @@ describe('AuthService - Passwordless Authentication', () => {
 
 		test('should login successfully with valid email', async () => {
 			// Setup mocks
-			User.findOne.mockResolvedValue(mockUser);
+			UserRepository.findByEmail.mockResolvedValue(mockUser);
 			uuidv4.mockReturnValue(mockSessionId);
 			jwt.sign.mockReturnValue(mockToken);
-			UserSession.create.mockResolvedValue({});
+			UserSessionRepository.create.mockResolvedValue({});
 
 			// Execute
 			const result = await AuthService.login('joao.silva@escola.com');
 
 			// Verify
-			expect(User.findOne).toHaveBeenCalledWith({
-				where: { email: 'joao.silva@escola.com' }
-			});
+			expect(UserRepository.findByEmail).toHaveBeenCalledWith('joao.silva@escola.com');
 			expect(uuidv4).toHaveBeenCalled();
 			expect(jwt.sign).toHaveBeenCalledWith(
 				{
@@ -64,7 +57,7 @@ describe('AuthService - Passwordless Authentication', () => {
 				'test-secret',
 				{ expiresIn: '24h' }
 			);
-			expect(UserSession.create).toHaveBeenCalledWith(
+			expect(UserSessionRepository.create).toHaveBeenCalledWith(
 				expect.objectContaining({
 					id: mockSessionId,
 					user_id: mockUser.id,
@@ -84,24 +77,22 @@ describe('AuthService - Passwordless Authentication', () => {
 
 		test('should throw error for non-existent email', async () => {
 			// Setup mock
-			User.findOne.mockResolvedValue(null);
+			UserRepository.findByEmail.mockResolvedValue(null);
 
 			// Execute & Verify
 			await expect(AuthService.login('invalid@email.com')).rejects.toThrow(
 				'Email não cadastrado'
 			);
-			expect(User.findOne).toHaveBeenCalledWith({
-				where: { email: 'invalid@email.com' }
-			});
-			expect(UserSession.create).not.toHaveBeenCalled();
+			expect(UserRepository.findByEmail).toHaveBeenCalledWith('invalid@email.com');
+			expect(UserSessionRepository.create).not.toHaveBeenCalled();
 		});
 
 		test('should return user without sensitive data', async () => {
 			// Setup mocks
-			User.findOne.mockResolvedValue(mockUser);
+			UserRepository.findByEmail.mockResolvedValue(mockUser);
 			uuidv4.mockReturnValue(mockSessionId);
 			jwt.sign.mockReturnValue(mockToken);
-			UserSession.create.mockResolvedValue({});
+			UserSessionRepository.create.mockResolvedValue({});
 
 			// Execute
 			const result = await AuthService.login('joao.silva@escola.com');
@@ -120,16 +111,14 @@ describe('AuthService - Passwordless Authentication', () => {
 		test('should delete session successfully', async () => {
 			const mockSessionId = '123e4567-e89b-12d3-a456-426614174000';
 
-			// Mock destroy method
-			UserSession.destroy = jest.fn().mockResolvedValue(1);
+			// Mock delete method
+			UserSessionRepository.delete.mockResolvedValue(1);
 
 			// Execute
 			await AuthService.logout(mockSessionId);
 
 			// Verify
-			expect(UserSession.destroy).toHaveBeenCalledWith({
-				where: { id: mockSessionId }
-			});
+			expect(UserSessionRepository.delete).toHaveBeenCalledWith(mockSessionId);
 		});
 	});
 

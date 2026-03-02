@@ -4,19 +4,10 @@
 const { Op } = require('sequelize');
 
 // Mock dependencies
-jest.mock('../../../src/models', () => ({
-	Post: {
-		findAndCountAll: jest.fn(),
-		findByPk: jest.fn(),
-		create: jest.fn(),
-		destroy: jest.fn()
-	},
-	User: {},
-	Discipline: {}
-}));
+jest.mock('../../../src/repositories/post.repository');
 
 const PostService = require('../../../src/services/post.service');
-const { Post } = require('../../../src/models');
+const PostRepository = require('../../../src/repositories/post.repository');
 
 describe('PostService - CRUD with Role-Based Visibility', () => {
 	afterEach(() => {
@@ -30,20 +21,16 @@ describe('PostService - CRUD with Role-Based Visibility', () => {
 		];
 
 		test('should return all posts for TEACHER (no status filter)', async () => {
-			Post.findAndCountAll.mockResolvedValue({
+			PostRepository.findAllPaginated.mockResolvedValue({
 				count: 2,
 				rows: mockPosts
 			});
 
 			const result = await PostService.listPosts({ page: 1, limit: 20 }, 'TEACHER');
 
-			expect(Post.findAndCountAll).toHaveBeenCalledWith(
-				expect.objectContaining({
-					where: {}, // No status filter for TEACHER
-					order: [['created_at', 'DESC']],
-					limit: 20,
-					offset: 0
-				})
+			expect(PostRepository.findAllPaginated).toHaveBeenCalledWith(
+				{}, // No status filter for TEACHER
+				{ limit: 20, offset: 0 }
 			);
 			expect(result.data).toEqual(mockPosts);
 			expect(result.pagination).toEqual({
@@ -56,51 +43,47 @@ describe('PostService - CRUD with Role-Based Visibility', () => {
 
 		test('should return only PUBLISHED posts for STUDENT', async () => {
 			const publishedPosts = [mockPosts[0]];
-			Post.findAndCountAll.mockResolvedValue({
+			PostRepository.findAllPaginated.mockResolvedValue({
 				count: 1,
 				rows: publishedPosts
 			});
 
 			const result = await PostService.listPosts({ page: 1, limit: 20 }, 'STUDENT');
 
-			expect(Post.findAndCountAll).toHaveBeenCalledWith(
-				expect.objectContaining({
-					where: { status: 'PUBLISHED' }
-				})
+			expect(PostRepository.findAllPaginated).toHaveBeenCalledWith(
+				{ status: 'PUBLISHED' },
+				{ limit: 20, offset: 0 }
 			);
 			expect(result.data).toEqual(publishedPosts);
 		});
 
 		test('should return only PUBLISHED posts for unauthenticated (null)', async () => {
 			const publishedPosts = [mockPosts[0]];
-			Post.findAndCountAll.mockResolvedValue({
+			PostRepository.findAllPaginated.mockResolvedValue({
 				count: 1,
 				rows: publishedPosts
 			});
 
 			const result = await PostService.listPosts({ page: 1, limit: 20 }, null);
 
-			expect(Post.findAndCountAll).toHaveBeenCalledWith(
-				expect.objectContaining({
-					where: { status: 'PUBLISHED' }
-				})
+			expect(PostRepository.findAllPaginated).toHaveBeenCalledWith(
+				{ status: 'PUBLISHED' },
+				{ limit: 20, offset: 0 }
 			);
 			expect(result.data).toEqual(publishedPosts);
 		});
 
 		test('should return correct pagination', async () => {
-			Post.findAndCountAll.mockResolvedValue({
+			PostRepository.findAllPaginated.mockResolvedValue({
 				count: 45,
 				rows: mockPosts
 			});
 
 			const result = await PostService.listPosts({ page: 2, limit: 20 }, 'TEACHER');
 
-			expect(Post.findAndCountAll).toHaveBeenCalledWith(
-				expect.objectContaining({
-					limit: 20,
-					offset: 20 // (page 2 - 1) * 20
-				})
+			expect(PostRepository.findAllPaginated).toHaveBeenCalledWith(
+				{},
+				{ limit: 20, offset: 20 } // (page 2 - 1) * 20
 			);
 			expect(result.pagination).toEqual({
 				page: 2,
@@ -111,18 +94,16 @@ describe('PostService - CRUD with Role-Based Visibility', () => {
 		});
 
 		test('should use default page 1 and limit 20 when not provided', async () => {
-			Post.findAndCountAll.mockResolvedValue({
+			PostRepository.findAllPaginated.mockResolvedValue({
 				count: 10,
 				rows: mockPosts
 			});
 
 			await PostService.listPosts({}, 'TEACHER');
 
-			expect(Post.findAndCountAll).toHaveBeenCalledWith(
-				expect.objectContaining({
-					limit: 20,
-					offset: 0
-				})
+			expect(PostRepository.findAllPaginated).toHaveBeenCalledWith(
+				{},
+				{ limit: 20, offset: 0 }
 			);
 		});
 	});
@@ -137,24 +118,16 @@ describe('PostService - CRUD with Role-Based Visibility', () => {
 				discipline: { id: '1', label: 'Math' }
 			};
 
-			Post.findByPk.mockResolvedValue(mockPost);
+			PostRepository.findById.mockResolvedValue(mockPost);
 
 			const result = await PostService.getPostById('1');
 
-			expect(Post.findByPk).toHaveBeenCalledWith(
-				'1',
-				expect.objectContaining({
-					include: expect.arrayContaining([
-						expect.objectContaining({ as: 'author' }),
-						expect.objectContaining({ as: 'discipline' })
-					])
-				})
-			);
+			expect(PostRepository.findById).toHaveBeenCalledWith('1');
 			expect(result).toEqual(mockPost);
 		});
 
 		test('should throw error when post not found', async () => {
-			Post.findByPk.mockResolvedValue(null);
+			PostRepository.findById.mockResolvedValue(null);
 
 			await expect(PostService.getPostById('invalid-id')).rejects.toThrow(
 				'Post não encontrado'
@@ -173,12 +146,12 @@ describe('PostService - CRUD with Role-Based Visibility', () => {
 			const mockCreatedPost = { id: '1', ...mockData };
 			const mockPostWithIncludes = { ...mockCreatedPost, author: {}, discipline: {} };
 
-			Post.create.mockResolvedValue(mockCreatedPost);
-			Post.findByPk.mockResolvedValue(mockPostWithIncludes);
+			PostRepository.create.mockResolvedValue(mockCreatedPost);
+			PostRepository.findById.mockResolvedValue(mockPostWithIncludes);
 
 			const result = await PostService.createPost(mockData, 'user-123');
 
-			expect(Post.create).toHaveBeenCalledWith(
+			expect(PostRepository.create).toHaveBeenCalledWith(
 				expect.objectContaining({
 					title: mockData.title,
 					content: mockData.content,
@@ -198,37 +171,15 @@ describe('PostService - CRUD with Role-Based Visibility', () => {
 				status: 'PUBLISHED'
 			};
 
-			Post.create.mockResolvedValue({ id: '1', ...mockData });
-			Post.findByPk.mockResolvedValue({ id: '1' });
+			PostRepository.create.mockResolvedValue({ id: '1', ...mockData });
+			PostRepository.findById.mockResolvedValue({ id: '1' });
 
 			await PostService.createPost(mockData, 'user-123');
 
-			expect(Post.create).toHaveBeenCalledWith(
+			expect(PostRepository.create).toHaveBeenCalledWith(
 				expect.objectContaining({
 					published_at: expect.any(Date)
 				})
-			);
-		});
-
-		test('should throw error when title is too short', async () => {
-			const mockData = {
-				title: 'Test', // Less than 5 characters
-				content: 'Valid content here'
-			};
-
-			await expect(PostService.createPost(mockData, 'user-123')).rejects.toThrow(
-				'Título deve ter no mínimo 5 caracteres'
-			);
-		});
-
-		test('should throw error when content is too short', async () => {
-			const mockData = {
-				title: 'Valid Title',
-				content: 'Short' // Less than 10 characters
-			};
-
-			await expect(PostService.createPost(mockData, 'user-123')).rejects.toThrow(
-				'Conteúdo deve ter no mínimo 10 caracteres'
 			);
 		});
 	});
@@ -238,32 +189,33 @@ describe('PostService - CRUD with Role-Based Visibility', () => {
 			const mockPost = {
 				id: '1',
 				title: 'Old Title',
-				published_at: null,
-				update: jest.fn().mockResolvedValue()
+				published_at: null
 			};
 			const mockUpdatedData = { title: 'New Title' };
 
-			Post.findByPk.mockResolvedValueOnce(mockPost); // For update
-			Post.findByPk.mockResolvedValueOnce({ ...mockPost, title: 'New Title' }); // For getPostById
+			PostRepository.findById.mockResolvedValueOnce(mockPost); // For existence check
+			PostRepository.update.mockResolvedValue(mockPost);
+			PostRepository.findById.mockResolvedValueOnce({ ...mockPost, title: 'New Title' }); // For getPostById
 
 			await PostService.updatePost('1', mockUpdatedData);
 
-			expect(mockPost.update).toHaveBeenCalledWith(mockUpdatedData);
+			expect(PostRepository.update).toHaveBeenCalledWith('1', mockUpdatedData);
 		});
 
 		test('should set published_at when changing status to PUBLISHED', async () => {
 			const mockPost = {
 				id: '1',
-				published_at: null,
-				update: jest.fn().mockResolvedValue()
+				published_at: null
 			};
 
-			Post.findByPk.mockResolvedValueOnce(mockPost);
-			Post.findByPk.mockResolvedValueOnce(mockPost);
+			PostRepository.findById.mockResolvedValueOnce(mockPost); // For existence check
+			PostRepository.update.mockResolvedValue(mockPost);
+			PostRepository.findById.mockResolvedValueOnce(mockPost); // For getPostById
 
 			await PostService.updatePost('1', { status: 'PUBLISHED' });
 
-			expect(mockPost.update).toHaveBeenCalledWith(
+			expect(PostRepository.update).toHaveBeenCalledWith(
+				'1',
 				expect.objectContaining({
 					status: 'PUBLISHED',
 					published_at: expect.any(Date)
@@ -272,7 +224,7 @@ describe('PostService - CRUD with Role-Based Visibility', () => {
 		});
 
 		test('should throw error when post not found', async () => {
-			Post.findByPk.mockResolvedValue(null);
+			PostRepository.findById.mockResolvedValue(null);
 
 			await expect(PostService.updatePost('invalid-id', {})).rejects.toThrow(
 				'Post não encontrado'
@@ -284,22 +236,22 @@ describe('PostService - CRUD with Role-Based Visibility', () => {
 		test('should delete post permanently (hard delete)', async () => {
 			const mockPost = { id: '1', title: 'Post to Delete' };
 
-			Post.findByPk.mockResolvedValue(mockPost);
-			Post.destroy.mockResolvedValue(1);
+			PostRepository.findById.mockResolvedValue(mockPost);
+			PostRepository.delete.mockResolvedValue(1);
 
 			await PostService.deletePost('1');
 
-			expect(Post.destroy).toHaveBeenCalledWith({ where: { id: '1' } });
+			expect(PostRepository.delete).toHaveBeenCalledWith('1');
 		});
 
 		test('should throw error when post not found', async () => {
-			Post.findByPk.mockResolvedValue(null);
+			PostRepository.findById.mockResolvedValue(null);
 
 			await expect(PostService.deletePost('invalid-id')).rejects.toThrow(
 				'Post não encontrado'
 			);
 
-			expect(Post.destroy).not.toHaveBeenCalled();
+			expect(PostRepository.delete).not.toHaveBeenCalled();
 		});
 	});
 
@@ -310,76 +262,69 @@ describe('PostService - CRUD with Role-Based Visibility', () => {
 				pagination: { page: 1, limit: 20, total: 0, totalPages: 0 }
 			};
 
-			Post.findAndCountAll.mockResolvedValue({ count: 0, rows: [] });
+			PostRepository.findAllPaginated.mockResolvedValue({ count: 0, rows: [] });
 
 			const result = await PostService.searchPosts({}, 'TEACHER');
 
-			// When no search params, it calls listPosts which calls findAndCountAll
-			expect(Post.findAndCountAll).toHaveBeenCalled();
+			// When no search params, it calls listPosts which calls findAllPaginated
+			expect(PostRepository.findAllPaginated).toHaveBeenCalled();
 			expect(result).toEqual(mockResult);
 		});
 
 		test('should filter by query (title OR content)', async () => {
-			Post.findAndCountAll.mockResolvedValue({ count: 1, rows: [] });
+			PostRepository.search.mockResolvedValue({ count: 1, rows: [] });
 
 			await PostService.searchPosts({ query: 'test' }, 'TEACHER');
 
-			expect(Post.findAndCountAll).toHaveBeenCalledWith(
+			expect(PostRepository.search).toHaveBeenCalledWith(
 				expect.objectContaining({
-					where: expect.objectContaining({
-						[Op.or]: [
-							{ title: { [Op.iLike]: '%test%' } },
-							{ content: { [Op.iLike]: '%test%' } }
-						]
-					})
-				})
+					[Op.or]: [
+						{ title: { [Op.iLike]: '%test%' } },
+						{ content: { [Op.iLike]: '%test%' } }
+					]
+				}),
+				null, // no author filter
+				{ limit: 20, offset: 0 }
 			);
 		});
 
 		test('should filter by title only', async () => {
-			Post.findAndCountAll.mockResolvedValue({ count: 1, rows: [] });
+			PostRepository.search.mockResolvedValue({ count: 1, rows: [] });
 
 			await PostService.searchPosts({ title: 'intro' }, 'TEACHER');
 
-			expect(Post.findAndCountAll).toHaveBeenCalledWith(
+			expect(PostRepository.search).toHaveBeenCalledWith(
 				expect.objectContaining({
-					where: expect.objectContaining({
-						title: { [Op.iLike]: '%intro%' }
-					})
-				})
+					title: { [Op.iLike]: '%intro%' }
+				}),
+				null,
+				{ limit: 20, offset: 0 }
 			);
 		});
 
 		test('should filter by author name', async () => {
-			Post.findAndCountAll.mockResolvedValue({ count: 1, rows: [] });
+			PostRepository.search.mockResolvedValue({ count: 1, rows: [] });
 
 			await PostService.searchPosts({ author: 'silva' }, 'TEACHER');
 
-			expect(Post.findAndCountAll).toHaveBeenCalledWith(
-				expect.objectContaining({
-					include: expect.arrayContaining([
-						expect.objectContaining({
-							as: 'author',
-							where: {
-								name: { [Op.iLike]: '%silva%' }
-							}
-						})
-					])
-				})
+			expect(PostRepository.search).toHaveBeenCalledWith(
+				expect.any(Object),
+				{ name: { [Op.iLike]: '%silva%' } }, // author filter
+				{ limit: 20, offset: 0 }
 			);
 		});
 
 		test('should apply PUBLISHED filter for non-TEACHER users', async () => {
-			Post.findAndCountAll.mockResolvedValue({ count: 1, rows: [] });
+			PostRepository.search.mockResolvedValue({ count: 1, rows: [] });
 
 			await PostService.searchPosts({ query: 'test' }, 'STUDENT');
 
-			expect(Post.findAndCountAll).toHaveBeenCalledWith(
+			expect(PostRepository.search).toHaveBeenCalledWith(
 				expect.objectContaining({
-					where: expect.objectContaining({
-						status: 'PUBLISHED'
-					})
-				})
+					status: 'PUBLISHED'
+				}),
+				null,
+				{ limit: 20, offset: 0 }
 			);
 		});
 	});

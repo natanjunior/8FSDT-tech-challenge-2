@@ -1,4 +1,6 @@
-const { Discipline } = require('../models');
+'use strict';
+
+const DisciplineRepository = require('../repositories/discipline.repository');
 
 class DisciplineService {
   /**
@@ -6,11 +8,7 @@ class DisciplineService {
    * @returns {Array} Array de disciplinas { id, label, created_at }
    */
   async listAll() {
-    const disciplines = await Discipline.findAll({
-      order: [['label', 'ASC']]
-    });
-
-    return disciplines;
+    return DisciplineRepository.findAllOrdered();
   }
 }
 

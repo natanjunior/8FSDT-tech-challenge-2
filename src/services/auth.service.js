@@ -2,7 +2,8 @@
 
 const jwt = require('jsonwebtoken');
 const { v4: uuidv4 } = require('uuid');
-const { User, UserSession } = require('../models');
+const UserRepository = require('../repositories/user.repository');
+const UserSessionRepository = require('../repositories/userSession.repository');
 
 /**
  * AuthService - Passwordless Authentication
@@ -16,7 +17,7 @@ class AuthService {
 	 */
 	async login(email) {
 		// Buscar usuário por email
-		const user = await User.findOne({ where: { email } });
+		const user = await UserRepository.findByEmail(email);
 
 		if (!user) {
 			throw new Error('Email não cadastrado');
@@ -39,7 +40,7 @@ class AuthService {
 		const token = this.generateToken(payload);
 
 		// Salvar sessão no banco
-		await UserSession.create({
+		await UserSessionRepository.create({
 			id: sessionId,
 			user_id: user.id,
 			session_token: token,
@@ -64,9 +65,7 @@ class AuthService {
 	 * @returns {Promise<void>}
 	 */
 	async logout(sessionId) {
-		await UserSession.destroy({
-			where: { id: sessionId }
-		});
+		await UserSessionRepository.delete(sessionId);
 	}
 
 	/**

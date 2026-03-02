@@ -1,7 +1,7 @@
 'use strict';
 
 const { Op } = require('sequelize');
-const { Post, User, Discipline } = require('../models');
+const PostRepository = require('../repositories/post.repository');
 
 /**
  * PostService - CRUD de Posts com Visibilidade por Role
@@ -33,25 +33,7 @@ class PostService {
 		}
 		// TEACHER: vê todos (sem filtro)
 
-		const { count, rows } = await Post.findAndCountAll({
-			where,
-			include: [
-				{
-					model: User,
-					as: 'author',
-					attributes: ['id', 'name', 'role']
-				},
-				{
-					model: Discipline,
-					as: 'discipline',
-					attributes: ['id', 'label']
-				}
-			],
-			order: [['created_at', 'DESC']],
-			limit,
-			offset,
-			distinct: true
-		});
+		const { count, rows } = await PostRepository.findAllPaginated(where, { limit, offset });
 
 		const totalPages = Math.ceil(count / limit);
 
@@ -72,20 +54,7 @@ class PostService {
 	 * @returns {Promise<Object>} Post com includes
 	 */
 	async getPostById(id) {
-		const post = await Post.findByPk(id, {
-			include: [
-				{
-					model: User,
-					as: 'author',
-					attributes: ['id', 'name', 'role']
-				},
-				{
-					model: Discipline,
-					as: 'discipline',
-					attributes: ['id', 'label']
-				}
-			]
-		});
+		const post = await PostRepository.findById(id);
 
 		if (!post) {
 			throw new Error('Post não encontrado');
@@ -111,7 +80,7 @@ class PostService {
 		}
 
 		// Criar post
-		const post = await Post.create({
+		const post = await PostRepository.create({
 			title: data.title,
 			content: data.content,
 			author_id: userId,
@@ -131,7 +100,7 @@ class PostService {
 	 * @returns {Promise<Object>} Post atualizado
 	 */
 	async updatePost(id, data) {
-		const post = await Post.findByPk(id);
+		const post = await PostRepository.findById(id);
 
 		if (!post) {
 			throw new Error('Post não encontrado');
@@ -143,10 +112,10 @@ class PostService {
 		}
 
 		// Atualizar campos fornecidos
-		await post.update(data);
+		await PostRepository.update(id, data);
 
 		// Retornar com includes
-		return await this.getPostById(post.id);
+		return await this.getPostById(id);
 	}
 
 	/**
@@ -155,14 +124,14 @@ class PostService {
 	 * @returns {Promise<void>}
 	 */
 	async deletePost(id) {
-		const post = await Post.findByPk(id);
+		const post = await PostRepository.findById(id);
 
 		if (!post) {
 			throw new Error('Post não encontrado');
 		}
 
 		// HARD DELETE (remoção permanente)
-		await Post.destroy({ where: { id } });
+		await PostRepository.delete(id);
 	}
 
 	/**
@@ -185,13 +154,6 @@ class PostService {
 
 		// Construir WHERE clause
 		const where = {};
-		const include = [
-			{
-				model: Discipline,
-				as: 'discipline',
-				attributes: ['id', 'label']
-			}
-		];
 
 		// Filtro de busca por query (título OU conteúdo)
 		if (query) {
@@ -206,34 +168,23 @@ class PostService {
 			where.title = { [Op.iLike]: `%${title}%` };
 		}
 
-		// Filtro por autor
-		const authorInclude = {
-			model: User,
-			as: 'author',
-			attributes: ['id', 'name', 'role']
-		};
-
-		if (author) {
-			authorInclude.where = {
-				name: { [Op.iLike]: `%${author}%` }
-			};
-		}
-
-		include.unshift(authorInclude);
-
 		// Visibilidade por role
 		if (userRole !== 'TEACHER') {
 			// STUDENT ou não autenticado: apenas PUBLISHED
 			where.status = 'PUBLISHED';
 		}
 
-		const { count, rows } = await Post.findAndCountAll({
-			where,
-			include,
-			order: [['created_at', 'DESC']],
+		// Filtro por autor
+		let authorWhere = null;
+		if (author) {
+			authorWhere = {
+				name: { [Op.iLike]: `%${author}%` }
+			};
+		}
+
+		const { count, rows } = await PostRepository.search(where, authorWhere, {
 			limit: limitNum,
-			offset,
-			distinct: true
+			offset
 		});
 
 		const totalPages = Math.ceil(count / limitNum);
