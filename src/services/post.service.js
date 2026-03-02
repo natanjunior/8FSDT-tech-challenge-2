@@ -1,7 +1,6 @@
 'use strict';
 
 const { Op } = require('sequelize');
-const PostRepository = require('../repositories/post.repository');
 
 /**
  * PostService - CRUD de Posts com Visibilidade por Role
@@ -12,6 +11,9 @@ const PostRepository = require('../repositories/post.repository');
  * - SEM ownership check (qualquer TEACHER edita/deleta qualquer post)
  */
 class PostService {
+	constructor(postRepository) {
+		this.postRepository = postRepository;
+	}
 	/**
 	 * Lista posts com visibilidade por role
 	 * @param {Object} filters - { page, limit }
@@ -33,7 +35,7 @@ class PostService {
 		}
 		// TEACHER: vê todos (sem filtro)
 
-		const { count, rows } = await PostRepository.findAllPaginated(where, { limit, offset });
+		const { count, rows } = await this.postRepository.findAllPaginated(where, { limit, offset });
 
 		const totalPages = Math.ceil(count / limit);
 
@@ -54,7 +56,7 @@ class PostService {
 	 * @returns {Promise<Object>} Post com includes
 	 */
 	async getPostById(id) {
-		const post = await PostRepository.findById(id);
+		const post = await this.postRepository.findById(id);
 
 		if (!post) {
 			throw new Error('Post não encontrado');
@@ -80,7 +82,7 @@ class PostService {
 		}
 
 		// Criar post
-		const post = await PostRepository.create({
+		const post = await this.postRepository.create({
 			title: data.title,
 			content: data.content,
 			author_id: userId,
@@ -100,7 +102,7 @@ class PostService {
 	 * @returns {Promise<Object>} Post atualizado
 	 */
 	async updatePost(id, data) {
-		const post = await PostRepository.findById(id);
+		const post = await this.postRepository.findById(id);
 
 		if (!post) {
 			throw new Error('Post não encontrado');
@@ -112,7 +114,7 @@ class PostService {
 		}
 
 		// Atualizar campos fornecidos
-		await PostRepository.update(id, data);
+		await this.postRepository.update(id, data);
 
 		// Retornar com includes
 		return await this.getPostById(id);
@@ -124,14 +126,14 @@ class PostService {
 	 * @returns {Promise<void>}
 	 */
 	async deletePost(id) {
-		const post = await PostRepository.findById(id);
+		const post = await this.postRepository.findById(id);
 
 		if (!post) {
 			throw new Error('Post não encontrado');
 		}
 
 		// HARD DELETE (remoção permanente)
-		await PostRepository.delete(id);
+		await this.postRepository.delete(id);
 	}
 
 	/**
@@ -182,7 +184,7 @@ class PostService {
 			};
 		}
 
-		const { count, rows } = await PostRepository.search(where, authorWhere, {
+		const { count, rows } = await this.postRepository.search(where, authorWhere, {
 			limit: limitNum,
 			offset
 		});
@@ -201,4 +203,4 @@ class PostService {
 	}
 }
 
-module.exports = new PostService();
+module.exports = PostService;

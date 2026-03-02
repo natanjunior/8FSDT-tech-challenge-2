@@ -2,8 +2,7 @@
 
 const express = require('express');
 const router = express.Router();
-const AuthController = require('../controllers/auth.controller');
-const { authenticate } = require('../middlewares/authenticate');
+const { authController, authenticate } = require('../container');
 const { validate } = require('../middlewares/validate');
 const { loginValidator } = require('../validators/auth.validator');
 
@@ -41,7 +40,7 @@ const { loginValidator } = require('../validators/auth.validator');
  *               $ref: '#/components/schemas/Error'
  */
 router.post('/login', loginValidator, validate, (req, res) =>
-	AuthController.login(req, res)
+	authController.login(req, res)
 );
 
 /**
@@ -71,6 +70,6 @@ router.post('/login', loginValidator, validate, (req, res) =>
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.post('/logout', authenticate, (req, res) => AuthController.logout(req, res));
+router.post('/logout', authenticate, (req, res) => authController.logout(req, res));
 
 module.exports = router;

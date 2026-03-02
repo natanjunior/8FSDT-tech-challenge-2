@@ -10,4 +10,4 @@ class DisciplineRepository {
 	}
 }
 
-module.exports = new DisciplineRepository();
+module.exports = DisciplineRepository;

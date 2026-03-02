@@ -1,6 +1,10 @@
-const PostReadService = require('../services/postRead.service');
+'use strict';
 
 class PostReadController {
+  constructor(postReadService) {
+    this.postReadService = postReadService;
+  }
+
   /**
    * Marca um post como lido
    * POST /posts/:id/read
@@ -10,7 +14,7 @@ class PostReadController {
       const postId = req.params.id;
       const userId = req.user.id;
 
-      const result = await PostReadService.markAsRead(postId, userId);
+      const result = await this.postReadService.markAsRead(postId, userId);
 
       return res.status(201).json(result);
     } catch (error) {
@@ -30,7 +34,7 @@ class PostReadController {
       const postId = req.params.id;
       const userId = req.user.id;
 
-      const result = await PostReadService.checkIfRead(postId, userId);
+      const result = await this.postReadService.checkIfRead(postId, userId);
 
       return res.status(200).json(result);
     } catch (error) {
@@ -39,4 +43,4 @@ class PostReadController {
   }
 }
 
-module.exports = new PostReadController();
+module.exports = PostReadController;

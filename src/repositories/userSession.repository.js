@@ -16,4 +16,4 @@ class UserSessionRepository {
 	}
 }
 
-module.exports = new UserSessionRepository();
+module.exports = UserSessionRepository;

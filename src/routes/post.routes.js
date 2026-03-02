@@ -2,8 +2,7 @@
 
 const express = require('express');
 const router = express.Router();
-const PostController = require('../controllers/post.controller');
-const { authenticate } = require('../middlewares/authenticate');
+const { postController, authenticate } = require('../container');
 const { authorize } = require('../middlewares/authorize');
 const { validate } = require('../middlewares/validate');
 const {
@@ -73,7 +72,7 @@ const optionalAuth = (req, res, next) => {
  *               $ref: '#/components/schemas/Error'
  */
 router.get('/', optionalAuth, listPostsValidator, validate, (req, res) =>
-	PostController.listPosts(req, res)
+	postController.listPosts(req, res)
 );
 
 /**
@@ -131,7 +130,7 @@ router.get('/', optionalAuth, listPostsValidator, validate, (req, res) =>
  *               $ref: '#/components/schemas/Error'
  */
 router.get('/search', optionalAuth, searchPostsValidator, validate, (req, res) =>
-	PostController.searchPosts(req, res)
+	postController.searchPosts(req, res)
 );
 
 /**
@@ -172,7 +171,7 @@ router.get('/search', optionalAuth, searchPostsValidator, validate, (req, res) =
  *               $ref: '#/components/schemas/Error'
  */
 router.get('/:id', authenticate, getPostValidator, validate, (req, res) =>
-	PostController.getPostById(req, res)
+	postController.getPostById(req, res)
 );
 
 /**
@@ -222,7 +221,7 @@ router.post(
 	authorize(['TEACHER']),
 	createPostValidator,
 	validate,
-	(req, res) => PostController.createPost(req, res)
+	(req, res) => postController.createPost(req, res)
 );
 
 /**
@@ -288,7 +287,7 @@ router.put(
 	authorize(['TEACHER']),
 	updatePostValidator,
 	validate,
-	(req, res) => PostController.updatePost(req, res)
+	(req, res) => postController.updatePost(req, res)
 );
 
 /**
@@ -338,7 +337,7 @@ router.delete(
 	authorize(['TEACHER']),
 	deletePostValidator,
 	validate,
-	(req, res) => PostController.deletePost(req, res)
+	(req, res) => postController.deletePost(req, res)
 );
 
 // Montar sub-rotas de post reads

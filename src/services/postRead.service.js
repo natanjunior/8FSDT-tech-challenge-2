@@ -1,9 +1,10 @@
 'use strict';
 
-const PostRepository = require('../repositories/post.repository');
-const PostReadRepository = require('../repositories/postRead.repository');
-
 class PostReadService {
+  constructor(postRepository, postReadRepository) {
+    this.postRepository = postRepository;
+    this.postReadRepository = postReadRepository;
+  }
   /**
    * Marca um post como lido por um usuário (idempotente)
    * @param {string} postId - UUID do post
@@ -12,13 +13,13 @@ class PostReadService {
    */
   async markAsRead(postId, userId) {
     // Verificar se post existe
-    const post = await PostRepository.findById(postId);
+    const post = await this.postRepository.findById(postId);
     if (!post) {
       throw new Error('Post não encontrado');
     }
 
     // Buscar registro existente
-    const existingRead = await PostReadRepository.findByPostAndUser(postId, userId);
+    const existingRead = await this.postReadRepository.findByPostAndUser(postId, userId);
 
     // Se já existe, retornar registro existente (idempotente)
     if (existingRead) {
@@ -31,7 +32,7 @@ class PostReadService {
     }
 
     // Se não existe, criar novo registro
-    const newRead = await PostReadRepository.create({
+    const newRead = await this.postReadRepository.create({
       post_id: postId,
       user_id: userId,
       read_at: new Date()
@@ -52,7 +53,7 @@ class PostReadService {
    * @returns {Object} { read: boolean, read_at: Date|null }
    */
   async checkIfRead(postId, userId) {
-    const record = await PostReadRepository.findByPostAndUser(postId, userId);
+    const record = await this.postReadRepository.findByPostAndUser(postId, userId);
 
     if (record) {
       return {
@@ -68,4 +69,4 @@ class PostReadService {
   }
 }
 
-module.exports = new PostReadService();
+module.exports = PostReadService;

@@ -1,15 +1,28 @@
 // Tests for PostReadService (FASE 5 - Post Reads)
 // Run with: npm test tests/unit/services/postRead.service.test.js
 
-// Mock dependencies
-jest.mock('../../../src/repositories/post.repository');
-jest.mock('../../../src/repositories/postRead.repository');
-
 const PostReadService = require('../../../src/services/postRead.service');
-const PostRepository = require('../../../src/repositories/post.repository');
-const PostReadRepository = require('../../../src/repositories/postRead.repository');
 
 describe('PostReadService - Post Reads', () => {
+	let postReadService;
+	let mockPostRepository;
+	let mockPostReadRepository;
+
+	beforeEach(() => {
+		// Criar mocks dos repositórios (injetados no constructor)
+		mockPostRepository = {
+			findById: jest.fn()
+		};
+
+		mockPostReadRepository = {
+			findByPostAndUser: jest.fn(),
+			create: jest.fn()
+		};
+
+		// Instanciar service com dependências injetadas
+		postReadService = new PostReadService(mockPostRepository, mockPostReadRepository);
+	});
+
 	afterEach(() => {
 		jest.clearAllMocks();
 	});
@@ -27,15 +40,15 @@ describe('PostReadService - Post Reads', () => {
 				read_at: new Date('2024-01-01T10:00:00Z')
 			};
 
-			PostRepository.findById.mockResolvedValue(mockPost);
-			PostReadRepository.findByPostAndUser.mockResolvedValue(null); // Não existe
-			PostReadRepository.create.mockResolvedValue(mockNewRead);
+			mockPostRepository.findById.mockResolvedValue(mockPost);
+			mockPostReadRepository.findByPostAndUser.mockResolvedValue(null); // Não existe
+			mockPostReadRepository.create.mockResolvedValue(mockNewRead);
 
-			const result = await PostReadService.markAsRead(postId, userId);
+			const result = await postReadService.markAsRead(postId, userId);
 
-			expect(PostRepository.findById).toHaveBeenCalledWith(postId);
-			expect(PostReadRepository.findByPostAndUser).toHaveBeenCalledWith(postId, userId);
-			expect(PostReadRepository.create).toHaveBeenCalledWith(
+			expect(mockPostRepository.findById).toHaveBeenCalledWith(postId);
+			expect(mockPostReadRepository.findByPostAndUser).toHaveBeenCalledWith(postId, userId);
+			expect(mockPostReadRepository.create).toHaveBeenCalledWith(
 				expect.objectContaining({
 					post_id: postId,
 					user_id: userId
@@ -58,14 +71,14 @@ describe('PostReadService - Post Reads', () => {
 				read_at: new Date('2024-01-01T09:00:00Z')
 			};
 
-			PostRepository.findById.mockResolvedValue(mockPost);
-			PostReadRepository.findByPostAndUser.mockResolvedValue(mockExistingRead);
+			mockPostRepository.findById.mockResolvedValue(mockPost);
+			mockPostReadRepository.findByPostAndUser.mockResolvedValue(mockExistingRead);
 
-			const result = await PostReadService.markAsRead(postId, userId);
+			const result = await postReadService.markAsRead(postId, userId);
 
-			expect(PostRepository.findById).toHaveBeenCalledWith(postId);
-			expect(PostReadRepository.findByPostAndUser).toHaveBeenCalledWith(postId, userId);
-			expect(PostReadRepository.create).not.toHaveBeenCalled(); // Não deve criar novo
+			expect(mockPostRepository.findById).toHaveBeenCalledWith(postId);
+			expect(mockPostReadRepository.findByPostAndUser).toHaveBeenCalledWith(postId, userId);
+			expect(mockPostReadRepository.create).not.toHaveBeenCalled(); // Não deve criar novo
 			expect(result).toEqual({
 				id: mockExistingRead.id,
 				post_id: mockExistingRead.post_id,
@@ -75,15 +88,15 @@ describe('PostReadService - Post Reads', () => {
 		});
 
 		test('should throw error if post not found', async () => {
-			PostRepository.findById.mockResolvedValue(null);
+			mockPostRepository.findById.mockResolvedValue(null);
 
-			await expect(PostReadService.markAsRead(postId, userId)).rejects.toThrow(
+			await expect(postReadService.markAsRead(postId, userId)).rejects.toThrow(
 				'Post não encontrado'
 			);
 
-			expect(PostRepository.findById).toHaveBeenCalledWith(postId);
-			expect(PostReadRepository.findByPostAndUser).not.toHaveBeenCalled();
-			expect(PostReadRepository.create).not.toHaveBeenCalled();
+			expect(mockPostRepository.findById).toHaveBeenCalledWith(postId);
+			expect(mockPostReadRepository.findByPostAndUser).not.toHaveBeenCalled();
+			expect(mockPostReadRepository.create).not.toHaveBeenCalled();
 		});
 
 		test('should set read_at automatically', async () => {
@@ -95,13 +108,13 @@ describe('PostReadService - Post Reads', () => {
 				read_at: new Date()
 			};
 
-			PostRepository.findById.mockResolvedValue(mockPost);
-			PostReadRepository.findByPostAndUser.mockResolvedValue(null);
-			PostReadRepository.create.mockResolvedValue(mockNewRead);
+			mockPostRepository.findById.mockResolvedValue(mockPost);
+			mockPostReadRepository.findByPostAndUser.mockResolvedValue(null);
+			mockPostReadRepository.create.mockResolvedValue(mockNewRead);
 
-			await PostReadService.markAsRead(postId, userId);
+			await postReadService.markAsRead(postId, userId);
 
-			expect(PostReadRepository.create).toHaveBeenCalledWith(
+			expect(mockPostReadRepository.create).toHaveBeenCalledWith(
 				expect.objectContaining({
 					post_id: postId,
 					user_id: userId,
@@ -123,11 +136,11 @@ describe('PostReadService - Post Reads', () => {
 				read_at: new Date('2024-01-01T10:00:00Z')
 			};
 
-			PostReadRepository.findByPostAndUser.mockResolvedValue(mockRead);
+			mockPostReadRepository.findByPostAndUser.mockResolvedValue(mockRead);
 
-			const result = await PostReadService.checkIfRead(postId, userId);
+			const result = await postReadService.checkIfRead(postId, userId);
 
-			expect(PostReadRepository.findByPostAndUser).toHaveBeenCalledWith(postId, userId);
+			expect(mockPostReadRepository.findByPostAndUser).toHaveBeenCalledWith(postId, userId);
 			expect(result).toEqual({
 				read: true,
 				read_at: mockRead.read_at
@@ -135,11 +148,11 @@ describe('PostReadService - Post Reads', () => {
 		});
 
 		test('should return { read: false, read_at: null } if not read', async () => {
-			PostReadRepository.findByPostAndUser.mockResolvedValue(null);
+			mockPostReadRepository.findByPostAndUser.mockResolvedValue(null);
 
-			const result = await PostReadService.checkIfRead(postId, userId);
+			const result = await postReadService.checkIfRead(postId, userId);
 
-			expect(PostReadRepository.findByPostAndUser).toHaveBeenCalledWith(postId, userId);
+			expect(mockPostReadRepository.findByPostAndUser).toHaveBeenCalledWith(postId, userId);
 			expect(result).toEqual({
 				read: false,
 				read_at: null

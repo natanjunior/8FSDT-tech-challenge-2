@@ -2,8 +2,7 @@
 
 const express = require('express');
 const router = express.Router();
-const PostReadController = require('../controllers/postRead.controller');
-const { authenticate } = require('../middlewares/authenticate');
+const { postReadController, authenticate } = require('../container');
 
 /**
  * @swagger
@@ -50,7 +49,7 @@ const { authenticate } = require('../middlewares/authenticate');
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.post('/:id/read', authenticate, PostReadController.markAsRead);
+router.post('/:id/read', authenticate, (req, res) => postReadController.markAsRead(req, res));
 
 /**
  * @swagger
@@ -83,6 +82,6 @@ router.post('/:id/read', authenticate, PostReadController.markAsRead);
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.get('/:id/read', authenticate, PostReadController.checkIfRead);
+router.get('/:id/read', authenticate, (req, res) => postReadController.checkIfRead(req, res));
 
 module.exports = router;

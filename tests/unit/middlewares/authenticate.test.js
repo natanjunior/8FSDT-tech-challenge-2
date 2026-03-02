@@ -1,18 +1,28 @@
 // Tests for authenticate middleware
 // Run with: npm test tests/unit/middlewares/authenticate.test.js
 
-// Mock dependencies
-jest.mock('../../../src/services/auth.service');
-jest.mock('../../../src/repositories/userSession.repository');
-
-const { authenticate } = require('../../../src/middlewares/authenticate');
-const AuthService = require('../../../src/services/auth.service');
-const UserSessionRepository = require('../../../src/repositories/userSession.repository');
+const { createAuthenticate } = require('../../../src/middlewares/authenticate');
 
 describe('authenticate middleware', () => {
+	let authenticate;
+	let mockAuthService;
+	let mockUserSessionRepository;
 	let req, res, next;
 
 	beforeEach(() => {
+		// Criar mocks das dependências (injetados via factory)
+		mockAuthService = {
+			verifyToken: jest.fn()
+		};
+
+		mockUserSessionRepository = {
+			findById: jest.fn(),
+			delete: jest.fn()
+		};
+
+		// Criar middleware com dependências injetadas
+		authenticate = createAuthenticate(mockAuthService, mockUserSessionRepository);
+
 		req = {
 			headers: {}
 		};
@@ -42,15 +52,15 @@ describe('authenticate middleware', () => {
 		};
 
 		req.headers.authorization = `Bearer ${mockToken}`;
-		AuthService.verifyToken.mockReturnValue(mockDecoded);
-		UserSessionRepository.findById.mockResolvedValue(mockSession);
+		mockAuthService.verifyToken.mockReturnValue(mockDecoded);
+		mockUserSessionRepository.findById.mockResolvedValue(mockSession);
 
 		// Execute
 		await authenticate(req, res, next);
 
 		// Verify
-		expect(AuthService.verifyToken).toHaveBeenCalledWith(mockToken);
-		expect(UserSessionRepository.findById).toHaveBeenCalledWith(mockDecoded.sessionId);
+		expect(mockAuthService.verifyToken).toHaveBeenCalledWith(mockToken);
+		expect(mockUserSessionRepository.findById).toHaveBeenCalledWith(mockDecoded.sessionId);
 		expect(req.user).toEqual({
 			id: mockDecoded.id,
 			role: mockDecoded.role,
@@ -88,7 +98,7 @@ describe('authenticate middleware', () => {
 	test('should return 401 when token is invalid', async () => {
 		// Setup
 		req.headers.authorization = 'Bearer invalid.token';
-		AuthService.verifyToken.mockImplementation(() => {
+		mockAuthService.verifyToken.mockImplementation(() => {
 			throw new Error('invalid token');
 		});
 
@@ -111,14 +121,14 @@ describe('authenticate middleware', () => {
 		};
 
 		req.headers.authorization = `Bearer ${mockToken}`;
-		AuthService.verifyToken.mockReturnValue(mockDecoded);
-		UserSessionRepository.findById.mockResolvedValue(null); // Session not found
+		mockAuthService.verifyToken.mockReturnValue(mockDecoded);
+		mockUserSessionRepository.findById.mockResolvedValue(null); // Session not found
 
 		// Execute
 		await authenticate(req, res, next);
 
 		// Verify
-		expect(UserSessionRepository.findById).toHaveBeenCalledWith(mockDecoded.sessionId);
+		expect(mockUserSessionRepository.findById).toHaveBeenCalledWith(mockDecoded.sessionId);
 		expect(res.status).toHaveBeenCalledWith(401);
 		expect(res.json).toHaveBeenCalledWith({ error: 'Sessão inválida' });
 		expect(next).not.toHaveBeenCalled();
@@ -139,15 +149,15 @@ describe('authenticate middleware', () => {
 		};
 
 		req.headers.authorization = `Bearer ${mockToken}`;
-		AuthService.verifyToken.mockReturnValue(mockDecoded);
-		UserSessionRepository.findById.mockResolvedValue(mockSession);
-		UserSessionRepository.delete.mockResolvedValue(1);
+		mockAuthService.verifyToken.mockReturnValue(mockDecoded);
+		mockUserSessionRepository.findById.mockResolvedValue(mockSession);
+		mockUserSessionRepository.delete.mockResolvedValue(1);
 
 		// Execute
 		await authenticate(req, res, next);
 
 		// Verify
-		expect(UserSessionRepository.delete).toHaveBeenCalledWith(mockDecoded.sessionId);
+		expect(mockUserSessionRepository.delete).toHaveBeenCalledWith(mockDecoded.sessionId);
 		expect(res.status).toHaveBeenCalledWith(401);
 		expect(res.json).toHaveBeenCalledWith({ error: 'Sessão expirada' });
 		expect(next).not.toHaveBeenCalled();

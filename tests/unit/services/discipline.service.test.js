@@ -1,13 +1,22 @@
 // Tests for DisciplineService (FASE 5 - Disciplines)
 // Run with: npm test tests/unit/services/discipline.service.test.js
 
-// Mock dependencies
-jest.mock('../../../src/repositories/discipline.repository');
-
 const DisciplineService = require('../../../src/services/discipline.service');
-const DisciplineRepository = require('../../../src/repositories/discipline.repository');
 
 describe('DisciplineService - Disciplines', () => {
+	let disciplineService;
+	let mockDisciplineRepository;
+
+	beforeEach(() => {
+		// Criar mock do repositório (injetado no constructor)
+		mockDisciplineRepository = {
+			findAllOrdered: jest.fn()
+		};
+
+		// Instanciar service com dependência injetada
+		disciplineService = new DisciplineService(mockDisciplineRepository);
+	});
+
 	afterEach(() => {
 		jest.clearAllMocks();
 	});
@@ -20,21 +29,21 @@ describe('DisciplineService - Disciplines', () => {
 				{ id: '3', label: 'História', created_at: new Date() }
 			];
 
-			DisciplineRepository.findAllOrdered.mockResolvedValue(mockDisciplines);
+			mockDisciplineRepository.findAllOrdered.mockResolvedValue(mockDisciplines);
 
-			const result = await DisciplineService.listAll();
+			const result = await disciplineService.listAll();
 
-			expect(DisciplineRepository.findAllOrdered).toHaveBeenCalled();
+			expect(mockDisciplineRepository.findAllOrdered).toHaveBeenCalled();
 			expect(result).toEqual(mockDisciplines);
 			expect(result).toHaveLength(3);
 		});
 
 		test('should return empty array if no disciplines exist', async () => {
-			DisciplineRepository.findAllOrdered.mockResolvedValue([]);
+			mockDisciplineRepository.findAllOrdered.mockResolvedValue([]);
 
-			const result = await DisciplineService.listAll();
+			const result = await disciplineService.listAll();
 
-			expect(DisciplineRepository.findAllOrdered).toHaveBeenCalled();
+			expect(mockDisciplineRepository.findAllOrdered).toHaveBeenCalled();
 			expect(result).toEqual([]);
 			expect(result).toHaveLength(0);
 		});

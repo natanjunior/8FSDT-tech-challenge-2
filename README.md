@@ -64,7 +64,7 @@ Sistema de blogging educacional desenvolvido em Node.js com PostgreSQL, permitin
 | **Autenticação** | JWT (jsonwebtoken) |
 | **Testes** | Jest 29+ + Supertest |
 | **Validação** | Express Validator |
-| **Segurança** | Helmet, CORS, Rate Limiting |
+| **Segurança** | CORS |
 | **Dev Tools** | Nodemon, ESLint, Prettier |
 | **DevOps** | Docker, Docker Compose, GitHub Actions |
 
@@ -73,39 +73,30 @@ Sistema de blogging educacional desenvolvido em Node.js com PostgreSQL, permitin
 ```
 8FSDT-tech-challenge-2/
 ├── src/
-│   ├── config/              # Configurações (database.js)
-│   ├── models/              # Models Sequelize (User, Post, etc)
-│   ├── services/            # Lógica de negócio
-│   │   ├── auth.service.js
-│   │   └── post.service.js
+│   ├── config/              # Configurações (database, swagger)
 │   ├── controllers/         # Request/Response handlers
-│   │   ├── auth.controller.js
-│   │   └── post.controller.js
+│   ├── middlewares/         # Middlewares (auth, authorize, validate)
+│   ├── models/              # Models Sequelize (User, Post, etc)
+│   ├── repositories/        # Acesso a dados (Repository Pattern)
+│   ├── routes/              # Definição de rotas com Swagger docs
+│   ├── services/            # Lógica de negócio
 │   ├── validators/          # Validação centralizada com express-validator
-│   │   ├── post.validator.js
-│   │   └── auth.validator.js
-│   ├── middlewares/         # Middlewares (auth, authorize, errorHandler)
-│   │   ├── authenticate.js
-│   │   ├── authorize.js
-│   │   ├── validate.js      # Helper para processar erros de validação
-│   │   └── errorHandler.js
-│   ├── routes/              # Definição de rotas
-│   │   ├── auth.routes.js
-│   │   └── post.routes.js
-│   ├── utils/               # Utilitários (jwt.js, logger.js)
 │   ├── database/
 │   │   ├── migrations/      # Migrações do banco
 │   │   └── seeders/         # Seeds de dados
-│   └── app.js               # Configuração Express
+│   ├── app.js               # Configuração Express
+│   └── server.js            # Entry point do servidor
 ├── tests/
-│   ├── unit/                # Testes unitários
-│   │   ├── models.test.js
-│   │   └── services/
-│   └── integration/         # Testes de integração (futuros)
+│   ├── unit/                # Testes unitários (services, middlewares, models)
+│   └── integration/         # Testes de integração (E2E)
 ├── .env.example             # Template de variáveis
+├── .eslintrc.json           # Config ESLint
+├── .prettierrc              # Config Prettier
 ├── .sequelizerc             # Config Sequelize CLI
+├── Dockerfile               # Build multi-stage (dev/prod)
+├── docker-compose.yml       # Orquestração Docker (dev)
+├── docker-compose.prod.yml  # Orquestração Docker (prod)
 ├── jest.config.js           # Config Jest
-├── docker-compose.yml       # Orquestração Docker
 └── package.json             # Dependências e scripts
 ```
 
@@ -123,56 +114,56 @@ graph TB
 
     subgraph "API Layer"
         Routes[Routes]
-        Middlewares[Middlewares<br/>Auth, Authorize, ErrorHandler]
+        Middlewares[Middlewares<br/>Auth, Authorize, Validate]
         Controllers[Controllers<br/>Request/Response]
+        Validators[Validators<br/>express-validator]
     end
 
     subgraph "Business Layer"
         Services[Services<br/>Lógica de Negócio]
-        Utils[Utils<br/>JWT, Logger]
     end
 
     subgraph "Data Layer"
+        Repositories[Repositories<br/>Acesso a Dados]
         Models[Models Sequelize<br/>User, Post, Discipline, etc]
         DB[(PostgreSQL)]
     end
 
     Client -->|HTTP Request| Routes
-    Routes --> Middlewares
+    Routes --> Validators
+    Validators --> Middlewares
     Middlewares --> Controllers
     Controllers --> Services
-    Services --> Models
+    Services --> Repositories
+    Repositories --> Models
     Models --> DB
-    Services --> Utils
-    Middlewares --> Utils
 ```
 
 ### Camadas
 
-1. **API Layer** (Rotas, Middlewares, Controllers, Validators)
+1. **API Layer** (Rotas, Validators, Middlewares, Controllers)
    - Recebe requisições HTTP
    - Valida dados de entrada (express-validator)
    - Valida autenticação e autorização
    - Formata respostas
    - Trata erros
 
-2. **Business Layer** (Services, Utils)
+2. **Business Layer** (Services)
    - Implementa regras de negócio
-   - Valida dados de entrada
-   - Gerencia transações complexas
+   - Orquestra chamadas aos Repositories
 
-3. **Data Layer** (Models, Database)
+3. **Data Layer** (Repositories, Models, Database)
+   - Repositories encapsulam queries ao ORM
+   - Models definem schemas e relacionamentos
    - Abstração do banco de dados via Sequelize
-   - Definição de schemas e relacionamentos
-   - Queries otimizadas com índices
 
 ### Padrões Utilizados
 
-- **MVC Modificado**: Controllers → Services → Models
+- **MVC Modificado**: Controllers → Services → Repositories → Models
 - **Dependency Injection**: Services injetados nos Controllers
 - **Middleware Pattern**: Autenticação, autorização e tratamento de erros
 - **Validation Layer**: Validação centralizada com express-validator (fail-fast)
-- **Repository Pattern**: Models Sequelize como repositories
+- **Repository Pattern**: Camada `src/repositories/` abstrai acesso a dados dos Services
 
 ---
 
@@ -254,8 +245,6 @@ Conteúdo educacional criado por professores.
   - `posts_discipline_id_idx` (discipline_id) - Posts por disciplina
   - `posts_status_idx` (status) - Filtro de visibilidade
   - `posts_published_at_idx` (published_at) - Ordenação por publicação
-  - `posts_title_trgm_idx` (title gin_trgm_ops) - Busca fuzzy no título
-  - `posts_content_trgm_idx` (content gin_trgm_ops) - Busca fuzzy no conteúdo
 
 #### **Disciplines** (Disciplinas)
 Categorização de conteúdo por matéria.
@@ -291,7 +280,7 @@ Gerenciamento de tokens JWT para autenticação passwordless.
 ### Base URL
 
 ```
-http://localhost:3000/api
+http://localhost:3000
 ```
 
 ### Autenticação
@@ -335,7 +324,7 @@ Authorization: Bearer <seu_token_jwt>
 **Response 404 Not Found**:
 ```json
 {
-  "error": "Usuário não encontrado"
+  "error": "Email não cadastrado"
 }
 ```
 
@@ -352,17 +341,12 @@ Authorization: Bearer <seu_token_jwt>
 Authorization: Bearer <token>
 ```
 
-**Response 200 OK**:
-```json
-{
-  "message": "Logout realizado com sucesso"
-}
-```
+**Response 204 No Content**: Sem corpo de resposta
 
 **Response 401 Unauthorized**:
 ```json
 {
-  "error": "Token inválido ou expirado"
+  "error": "Token inválido"
 }
 ```
 
@@ -577,6 +561,88 @@ Authorization: Bearer <token>
 
 ---
 
+### Disciplines (Disciplinas)
+
+> **Nota**: Endpoints criados para manter a compatibilidade com o tech challenge da fase 1.
+
+#### `GET /disciplines`
+
+Lista todas as disciplinas cadastradas, ordenadas por label (A-Z).
+
+**Autenticação**: Requerida
+
+**Response 200 OK**:
+```json
+[
+  {
+    "id": "uuid",
+    "label": "Matemática",
+    "created_at": "2024-01-01T00:00:00.000Z",
+    "updated_at": "2024-01-01T00:00:00.000Z"
+  }
+]
+```
+
+**Response 401 Unauthorized**:
+```json
+{
+  "error": "Token não fornecido"
+}
+```
+
+---
+
+### Post Reads (Leitura de Posts)
+
+> **Nota**: Endpoints criados para manter a compatibilidade com o tech challenge da fase 1.
+
+#### `POST /posts/:id/read`
+
+Marca um post como lido pelo usuário autenticado. Operação idempotente — marcar o mesmo post mais de uma vez retorna o mesmo registro.
+
+**Autenticação**: Requerida
+
+**Response 201 Created**:
+```json
+{
+  "id": "uuid",
+  "post_id": "uuid",
+  "user_id": "uuid",
+  "read_at": "2024-01-01T10:00:00.000Z"
+}
+```
+
+**Response 404 Not Found**:
+```json
+{
+  "error": "Post não encontrado"
+}
+```
+
+#### `GET /posts/:id/read`
+
+Verifica se o usuário autenticado já leu o post especificado.
+
+**Autenticação**: Requerida
+
+**Response 200 OK**:
+```json
+{
+  "read": true,
+  "read_at": "2024-01-01T10:00:00.000Z"
+}
+```
+
+Caso o post não tenha sido lido:
+```json
+{
+  "read": false,
+  "read_at": null
+}
+```
+
+---
+
 ### **Códigos de Status HTTP**
 
 | Código | Significado | Uso |
@@ -729,7 +795,7 @@ DB_PASSWORD=postgres
 
 # JWT
 JWT_SECRET=your-super-secret-jwt-key-change-in-production
-JWT_EXPIRES_IN=7d
+JWT_EXPIRES_IN=24h
 
 # CORS
 ALLOWED_ORIGINS=*
@@ -758,9 +824,9 @@ npm run db:seed
 ```
 
 **Dados criados**:
-- 10 usuários (5 TEACHER + 5 STUDENT)
+- 4 usuários (2 TEACHER + 2 STUDENT)
 - 5 disciplinas (Matemática, Português, História, Física, Biologia)
-- 20 posts de exemplo
+- 5 posts de exemplo (4 PUBLISHED + 1 DRAFT)
 
 ### 6. Iniciar Servidor
 
@@ -822,8 +888,8 @@ npm run test:ci            # CI mode (para pipelines)
 
 **Cobertura Mínima:** 20% (configurado em jest.config.js)
 
-**Total de Testes:** ~67 testes
-- Unitários: 33 testes (services, middlewares, models)
+**Total de Testes:** ~102 testes
+- Unitários: 68 testes (services, middlewares, models)
 - Integração: 34 testes (end-to-end da API)
 
 ### Banco de Dados
@@ -866,7 +932,7 @@ npm run format             # Prettier format
 | `DB_USER` | Usuário do banco | - | Sim |
 | `DB_PASSWORD` | Senha do banco | - | Sim |
 | `JWT_SECRET` | Secret para JWT | - | Sim |
-| `JWT_EXPIRES_IN` | Expiração do token | `7d` | Não |
+| `JWT_EXPIRES_IN` | Expiração do token JWT e sessão | `24h` | Não |
 | `ALLOWED_ORIGINS` | Origins CORS | `*` | Não |
 
 ---
@@ -925,50 +991,100 @@ All files           |   45.2  |   38.5   |   52.1  |   44.8  |
 
 ## 🐳 Docker
 
-### Arquitetura Docker (Planejada - FASE 7)
+### Arquitetura Docker
 
 ```
-┌─────────────────────────────────────┐
-│   Docker Compose Network            │
-│                                     │
-│  ┌──────────────┐  ┌─────────────┐ │
-│  │   Node.js    │  │ PostgreSQL  │ │
-│  │   App        │──│   Database  │ │
-│  │  (port 3000) │  │ (port 5432) │ │
-│  └──────────────┘  └─────────────┘ │
-└─────────────────────────────────────┘
+┌──────────────────────────────────────────────────────┐
+│   Docker Compose Network (blog_network)              │
+│                                                      │
+│  ┌──────────────┐  ┌─────────────┐  ┌────────────┐ │
+│  │   Node.js    │  │ PostgreSQL  │  │  PgAdmin   │ │
+│  │   API        │──│   Database  │  │  (Web UI)  │ │
+│  │  (port 3030) │  │ (port 5433) │  │ (port 5050)│ │
+│  └──────────────┘  └─────────────┘  └────────────┘ │
+└──────────────────────────────────────────────────────┘
 ```
 
-### docker-compose.yml (Exemplo)
+### docker-compose.yml
 
 ```yaml
-version: '3.8'
-
 services:
-  db:
+  postgres:
     image: postgres:15-alpine
+    container_name: blog_api_postgres
+    restart: unless-stopped
     environment:
-      POSTGRES_DB: tech_challenge_dev
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_PASSWORD: root
+      POSTGRES_DB: blog_api_dev
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    networks:
+      - blog_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
-  app:
-    build: .
-    ports:
-      - "3000:3000"
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development
+    container_name: blog_api_app
+    restart: unless-stopped
     environment:
-      NODE_ENV: production
-      DB_HOST: db
+      NODE_ENV: development
+      PORT: 3030
+      DB_HOST: postgres
       DB_PORT: 5432
+      DB_USER: postgres
+      DB_PASSWORD: root
+      DB_NAME: blog_api_dev
+      JWT_SECRET: ${JWT_SECRET:-dev_secret_super_seguro_minimo_32_caracteres}
+    ports:
+      - "3030:3030"
+    volumes:
+      - ./src:/app/src
+      - ./package.json:/app/package.json
+      - /app/node_modules
     depends_on:
-      - db
+      postgres:
+        condition: service_healthy
+    networks:
+      - blog_network
+    command: npm run dev
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: blog_api_pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_LISTEN_PORT: 80
+    ports:
+      - "5050:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    depends_on:
+      - postgres
+    networks:
+      - blog_network
+
+networks:
+  blog_network:
+    driver: bridge
 
 volumes:
   postgres_data:
+    driver: local
+  pgadmin_data:
+    driver: local
 ```
 
 ### Comandos Docker

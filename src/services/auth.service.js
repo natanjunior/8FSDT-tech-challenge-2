@@ -2,14 +2,16 @@
 
 const jwt = require('jsonwebtoken');
 const { v4: uuidv4 } = require('uuid');
-const UserRepository = require('../repositories/user.repository');
-const UserSessionRepository = require('../repositories/userSession.repository');
 
 /**
  * AuthService - Passwordless Authentication
  * Login apenas com email (SEM password!)
  */
 class AuthService {
+	constructor(userRepository, userSessionRepository) {
+		this.userRepository = userRepository;
+		this.userSessionRepository = userSessionRepository;
+	}
 	/**
 	 * Login passwordless - apenas com email
 	 * @param {string} email - Email do usuário
@@ -17,7 +19,7 @@ class AuthService {
 	 */
 	async login(email) {
 		// Buscar usuário por email
-		const user = await UserRepository.findByEmail(email);
+		const user = await this.userRepository.findByEmail(email);
 
 		if (!user) {
 			throw new Error('Email não cadastrado');
@@ -26,8 +28,9 @@ class AuthService {
 		// Gerar sessionId único
 		const sessionId = uuidv4();
 
-		// Calcular expiração (24 horas)
-		const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+		// Calcular expiração baseada em JWT_EXPIRES_IN
+		const expiresIn = process.env.JWT_EXPIRES_IN || '24h';
+		const expiresAt = new Date(Date.now() + this._parseExpiresIn(expiresIn));
 
 		// Criar payload JWT com id, role e sessionId
 		const payload = {
@@ -40,7 +43,7 @@ class AuthService {
 		const token = this.generateToken(payload);
 
 		// Salvar sessão no banco
-		await UserSessionRepository.create({
+		await this.userSessionRepository.create({
 			id: sessionId,
 			user_id: user.id,
 			session_token: token,
@@ -65,7 +68,7 @@ class AuthService {
 	 * @returns {Promise<void>}
 	 */
 	async logout(sessionId) {
-		await UserSessionRepository.delete(sessionId);
+		await this.userSessionRepository.delete(sessionId);
 	}
 
 	/**
@@ -75,7 +78,7 @@ class AuthService {
 	 */
 	generateToken(payload) {
 		return jwt.sign(payload, process.env.JWT_SECRET, {
-			expiresIn: '24h'
+			expiresIn: process.env.JWT_EXPIRES_IN || '24h'
 		});
 	}
 
@@ -87,6 +90,28 @@ class AuthService {
 	verifyToken(token) {
 		return jwt.verify(token, process.env.JWT_SECRET);
 	}
+
+	/**
+	 * Converte string de duração (ex: '24h', '7d', '30m') em milissegundos
+	 * @param {string} duration - String de duração
+	 * @returns {number} Duração em milissegundos
+	 */
+	_parseExpiresIn(duration) {
+		const match = duration.match(/^(\d+)(s|m|h|d)$/);
+		if (!match) return 24 * 60 * 60 * 1000; // fallback 24h
+
+		const value = parseInt(match[1]);
+		const unit = match[2];
+
+		const multipliers = {
+			's': 1000,
+			'm': 60 * 1000,
+			'h': 60 * 60 * 1000,
+			'd': 24 * 60 * 60 * 1000
+		};
+
+		return value * multipliers[unit];
+	}
 }
 
-module.exports = new AuthService();
+module.exports = AuthService;

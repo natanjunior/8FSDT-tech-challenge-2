@@ -14,4 +14,4 @@ class PostReadRepository {
 	}
 }
 
-module.exports = new PostReadRepository();
+module.exports = PostReadRepository;

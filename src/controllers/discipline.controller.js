@@ -1,13 +1,17 @@
-const DisciplineService = require('../services/discipline.service');
+'use strict';
 
 class DisciplineController {
+  constructor(disciplineService) {
+    this.disciplineService = disciplineService;
+  }
+
   /**
    * Lista todas as disciplinas
    * GET /disciplines
    */
   async listAll(req, res) {
     try {
-      const disciplines = await DisciplineService.listAll();
+      const disciplines = await this.disciplineService.listAll();
 
       return res.status(200).json(disciplines);
     } catch (error) {
@@ -16,4 +20,4 @@ class DisciplineController {
   }
 }
 
-module.exports = new DisciplineController();
+module.exports = DisciplineController;

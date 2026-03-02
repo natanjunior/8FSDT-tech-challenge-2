@@ -1,11 +1,13 @@
 'use strict';
 
-const AuthService = require('../services/auth.service');
-
 /**
  * AuthController - Controlador de autenticação
  */
 class AuthController {
+	constructor(authService) {
+		this.authService = authService;
+	}
+
 	/**
 	 * Login passwordless (apenas com email)
 	 * POST /auth/login
@@ -16,7 +18,7 @@ class AuthController {
 	async login(req, res) {
 		try {
 			// Email já validado e normalizado pelo middleware!
-			const result = await AuthService.login(req.body.email);
+			const result = await this.authService.login(req.body.email);
 			return res.status(200).json(result);
 		} catch (error) {
 			// Email não cadastrado
@@ -39,7 +41,7 @@ class AuthController {
 			const { sessionId } = req.user;
 
 			// Chamar service
-			await AuthService.logout(sessionId);
+			await this.authService.logout(sessionId);
 
 			return res.status(204).send();
 		} catch (error) {
@@ -48,4 +50,4 @@ class AuthController {
 	}
 }
 
-module.exports = new AuthController();
+module.exports = AuthController;

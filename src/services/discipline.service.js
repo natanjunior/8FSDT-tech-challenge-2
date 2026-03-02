@@ -1,15 +1,17 @@
 'use strict';
 
-const DisciplineRepository = require('../repositories/discipline.repository');
-
 class DisciplineService {
+  constructor(disciplineRepository) {
+    this.disciplineRepository = disciplineRepository;
+  }
+
   /**
    * Lista todas as disciplinas ordenadas por label
    * @returns {Array} Array de disciplinas { id, label, created_at }
    */
   async listAll() {
-    return DisciplineRepository.findAllOrdered();
+    return this.disciplineRepository.findAllOrdered();
   }
 }
 
-module.exports = new DisciplineService();
+module.exports = DisciplineService;

@@ -2,8 +2,7 @@
 
 const express = require('express');
 const router = express.Router();
-const DisciplineController = require('../controllers/discipline.controller');
-const { authenticate } = require('../middlewares/authenticate');
+const { disciplineController, authenticate } = require('../container');
 
 /**
  * @swagger
@@ -36,6 +35,6 @@ const { authenticate } = require('../middlewares/authenticate');
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.get('/', authenticate, DisciplineController.listAll);
+router.get('/', authenticate, (req, res) => disciplineController.listAll(req, res));
 
 module.exports = router;

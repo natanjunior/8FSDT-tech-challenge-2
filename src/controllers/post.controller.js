@@ -1,11 +1,13 @@
 'use strict';
 
-const PostService = require('../services/post.service');
-
 /**
  * PostController - Controlador de Posts
  */
 class PostController {
+	constructor(postService) {
+		this.postService = postService;
+	}
+
 	/**
 	 * Lista posts com visibilidade por role
 	 * GET /posts?page=1&limit=20
@@ -16,7 +18,7 @@ class PostController {
 			const { page, limit } = req.query;
 			const userRole = req.user?.role || null;
 
-			const result = await PostService.listPosts({ page, limit }, userRole);
+			const result = await this.postService.listPosts({ page, limit }, userRole);
 
 			return res.status(200).json(result);
 		} catch (error) {
@@ -33,7 +35,7 @@ class PostController {
 		try {
 			const { id } = req.params;
 
-			const post = await PostService.getPostById(id);
+			const post = await this.postService.getPostById(id);
 
 			return res.status(200).json(post);
 		} catch (error) {
@@ -55,7 +57,7 @@ class PostController {
 	async createPost(req, res) {
 		try {
 			// Dados já validados e sanitizados pelo middleware!
-			const post = await PostService.createPost(req.body, req.user.id);
+			const post = await this.postService.createPost(req.body, req.user.id);
 			return res.status(201).json(post);
 		} catch (error) {
 			return res.status(500).json({ error: error.message });
@@ -73,7 +75,7 @@ class PostController {
 			const { id } = req.params;
 			const data = req.body;
 
-			const post = await PostService.updatePost(id, data);
+			const post = await this.postService.updatePost(id, data);
 
 			return res.status(200).json(post);
 		} catch (error) {
@@ -94,7 +96,7 @@ class PostController {
 		try {
 			const { id } = req.params;
 
-			await PostService.deletePost(id);
+			await this.postService.deletePost(id);
 
 			return res.status(204).send();
 		} catch (error) {
@@ -116,7 +118,7 @@ class PostController {
 			const { query, title, author, page, limit } = req.query;
 			const userRole = req.user?.role || null;
 
-			const result = await PostService.searchPosts(
+			const result = await this.postService.searchPosts(
 				{ query, title, author, page, limit },
 				userRole
 			);
@@ -128,4 +130,4 @@ class PostController {
 	}
 }
 
-module.exports = new PostController();
+module.exports = PostController;
