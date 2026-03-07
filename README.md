@@ -36,13 +36,15 @@
 
 ## 🎯 Sobre o Projeto
 
+Este projeto foi desenvolvido como parte do **Tech Challenge - Fase 2** do curso de **Software Development** da FIAP (turma 8FSDT). A proposta da fase 2 consiste em evoluir a API RESTful de blogging educacional criada na fase 1, aplicando boas praticas de engenharia de software como testes automatizados, containerizacao com Docker e integracao/entrega continua (CI/CD) com GitHub Actions. Alem dos requisitos obrigatorios, a equipe implementou melhorias como Repository Pattern, validacao centralizada com express-validator e Dependency Injection.
+
 ### Contexto
 
-Atualmente, a maioria dos professores da rede pública de educação não têm plataformas onde possam postar suas aulas e transmitir conhecimento para alunos de forma prática, centralizada e tecnológica.
+Atualmente, a maioria dos professores da rede publica de educacao nao tem plataformas onde possam postar suas aulas e transmitir conhecimento para alunos de forma pratica, centralizada e tecnologica.
 
-### Solução
+### Solucao
 
-Sistema de blogging educacional desenvolvido em Node.js com PostgreSQL, permitindo que professores criem, editem e publiquem conteúdo educacional, enquanto alunos podem visualizar e consumir esse conteúdo de forma organizada por disciplinas.
+Sistema de blogging educacional desenvolvido em Node.js com PostgreSQL, permitindo que professores criem, editem e publiquem conteudo educacional, enquanto alunos podem visualizar e consumir esse conteudo de forma organizada por disciplinas.
 
 ### Funcionalidades Principais
 
@@ -104,9 +106,9 @@ Sistema de blogging educacional desenvolvido em Node.js com PostgreSQL, permitin
 
 ## 🏗️ Arquitetura do Sistema
 
-### Visão Geral
+### Visao Geral
 
-O sistema segue uma arquitetura em camadas (Layered Architecture) com separação de responsabilidades:
+A arquitetura foi organizada em camadas (Layered Architecture) para manter a separacao de responsabilidades e facilitar a manutencao e testabilidade do codigo. Cada camada tem um papel bem definido: a API Layer recebe e valida requisicoes, a Business Layer concentra regras de negocio, e a Data Layer abstrai o acesso ao banco de dados. A adocao do Repository Pattern foi uma decisao da equipe para desacoplar os services do ORM (Sequelize), permitindo que os testes unitarios mockem repositorios em vez de modelos — tornando os testes mais simples e menos frageis.
 
 ```mermaid
 graph TB
@@ -168,6 +170,8 @@ graph TB
 ---
 
 ## 🗄️ Modelagem de Dados
+
+O banco de dados foi modelado com 4 entidades principais, utilizando UUIDs como chaves primarias para evitar colisoes e facilitar integracao futura. As sessoes de usuario foram separadas em tabela propria (`UserSessions`) para permitir invalidacao individual de tokens JWT sem afetar outros logins ativos do mesmo usuario.
 
 ### Diagrama Entidade-Relacionamento
 
@@ -275,7 +279,9 @@ Gerenciamento de tokens JWT para autenticação passwordless.
 
 ---
 
-## 📚 Documentação da API
+## 📚 Documentacao da API
+
+A API segue o padrao REST e disponibiliza documentacao interativa via Swagger em `/api-docs`. Os endpoints abaixo cobrem as funcionalidades requisitadas no Tech Challenge (autenticacao, CRUD de posts, busca) e endpoints adicionais de compatibilidade com a fase 1 (disciplinas e leituras de posts).
 
 ### Base URL
 
@@ -658,9 +664,11 @@ Caso o post não tenha sido lido:
 
 ---
 
-## 🔄 Fluxos da Aplicação
+## 🔄 Fluxos da Aplicacao
 
-### Fluxo de Autenticação Passwordless
+Os diagramas abaixo documentam os tres fluxos que melhor demonstram as regras de negocio da aplicacao: a autenticacao passwordless (sem senha), a visibilidade de posts condicionada ao role do usuario e o controle de acesso (RBAC) na criacao de conteudo.
+
+### Fluxo de Autenticacao Passwordless
 
 ```mermaid
 sequenceDiagram
@@ -939,9 +947,11 @@ npm run format             # Prettier format
 
 ## 🧪 Testes
 
-### Cobertura Mínima Requerida
+A especificacao do Tech Challenge requer um minimo de 20% de cobertura de testes. A equipe optou por ir alem, implementando testes unitarios para todas as camadas de logica (services, middlewares, models) e testes de integracao end-to-end para todos os endpoints da API, totalizando ~102 testes.
 
-O projeto requer **mínimo de 20% de cobertura** de testes (conforme especificação):
+### Cobertura Minima Requerida
+
+O projeto requer **minimo de 20% de cobertura** de testes (conforme especificacao):
 
 - **Branches**: >= 20%
 - **Functions**: >= 20%
@@ -956,40 +966,34 @@ Configurado em `jest.config.js`.
 npm run test:coverage
 ```
 
-**Saída de exemplo**:
-
-```
---------------------|---------|----------|---------|---------|
-File                | % Stmts | % Branch | % Funcs | % Lines |
---------------------|---------|----------|---------|---------|
-All files           |   45.2  |   38.5   |   52.1  |   44.8  |
- models/            |   85.3  |   75.0   |   90.0  |   85.0  |
-  User.js           |   100   |   100    |   100   |   100   |
-  Post.js           |   100   |   100    |   100   |   100   |
- services/          |   78.5  |   65.2   |   82.3  |   77.9  |
-  post.service.js   |   82.1  |   70.5   |   85.7  |   81.3  |
---------------------|---------|----------|---------|---------|
-```
-
 ### Testes Implementados
 
-- ✅ **Models** (`tests/unit/models.test.js`)
-  - Validação de schemas
-  - Relacionamentos entre entidades
-  - Métodos de instância
+#### Unitarios (68 testes)
 
-- ✅ **Services** (`tests/unit/services/post.service.test.js`)
-  - CRUD de posts
-  - Regras de visibilidade por role
-  - Validações de negócio
+- **Models** (`tests/unit/models.test.js`) — Validacao de schemas, relacionamentos entre entidades, metodos de instancia
 
-- ⏳ **Integration Tests** (FASE 6)
-  - Testes end-to-end de endpoints
-  - Autenticação e autorização
+- **Services**:
+  - `tests/unit/services/post.service.test.js` — CRUD de posts, regras de visibilidade por role, validacoes de negocio
+  - `tests/unit/services/auth.service.test.js` — Login passwordless, geracao/verificacao de tokens JWT, gerenciamento de sessoes
+  - `tests/unit/services/discipline.service.test.js` — Listagem ordenada de disciplinas
+  - `tests/unit/services/postRead.service.test.js` — Marcacao de leitura, idempotencia, verificacao de status
+
+- **Middlewares**:
+  - `tests/unit/middlewares/authenticate.test.js` — Validacao de token JWT, sessao expirada, token ausente
+  - `tests/unit/middlewares/authorize.test.js` — Controle de acesso por role (RBAC)
+
+#### Integracao (34 testes)
+
+- `tests/integration/auth.integration.test.js` — Fluxo completo de login/logout
+- `tests/integration/posts.integration.test.js` — CRUD end-to-end, paginacao, busca, visibilidade por role
+- `tests/integration/disciplines.integration.test.js` — Listagem de disciplinas com autenticacao
+- `tests/integration/postReads.integration.test.js` — Marcacao e verificacao de leitura end-to-end
 
 ---
 
 ## 🐳 Docker
+
+A containerizacao foi implementada conforme requisitado no Tech Challenge. O ambiente de desenvolvimento utiliza Docker Compose com tres servicos: a API Node.js, o banco PostgreSQL e o PgAdmin para gerenciamento visual. O Dockerfile utiliza multi-stage build com targets separados para desenvolvimento (com hot reload via nodemon e volume mount do codigo-fonte) e producao (imagem otimizada sem devDependencies).
 
 ### Arquitetura Docker
 
@@ -1104,32 +1108,46 @@ npm run docker:logs
 
 ## ⚙️ CI/CD
 
-### GitHub Actions Pipeline (Planejado - FASE 8)
+O pipeline de CI/CD foi implementado com GitHub Actions conforme requisitado no Tech Challenge. O CI garante que nenhum merge aconteca sem todos os testes passando e com cobertura minima de 20%. Alem dos requisitos obrigatorios, a equipe adicionou security audit automatizado, build e health check da imagem Docker, e push automatico para o Docker Hub em merges na main. O CD possui a estrutura de deploy para staging e production, porem o deploy real nao foi implementado — os jobs permanecem como placeholders.
 
-**Workflow**: `.github/workflows/ci.yml`
+### CI Pipeline (`.github/workflows/ci.yml`)
 
-**Etapas**:
-1. **Lint**: ESLint + Prettier check
-2. **Test**: Jest com cobertura >= 20%
-3. **Build**: Verificação de build
-4. **Deploy**: Deploy automático (staging/production)
+**Triggers**: Push para `main`/`develop` e Pull Requests
 
-**Triggers**:
-- Push para `main`
-- Pull Requests
+**Jobs**:
 
-**Exemplo de Pipeline**:
+| Job | Nome | Descricao | Dependencias |
+|-----|------|-----------|-------------|
+| 1 | **Unit Tests** | Roda `npm run test:unit` | — |
+| 2 | **Integration Tests** | Sobe PostgreSQL, roda migrations e `npm run test:integration` | — |
+| 3 | **Test Coverage** | Roda `npm run test:coverage`, verifica threshold >= 20%, upload Codecov | Jobs 1 + 2 |
+| 4 | **Docker Build** | Builda imagem Docker, push para Docker Hub (apenas em push para `main`), health check | Jobs 1 + 2 |
+| 5 | **Security Audit** | Roda `npm audit --audit-level=moderate` | — |
+
+### CD Pipeline (`.github/workflows/cd.yml`)
+
+**Triggers**: Push para `main` (staging) e tags `v*.*.*` (production)
+
+| Job | Nome | Trigger | Descricao |
+|-----|------|---------|-----------|
+| 1 | **Deploy to Staging** | Push para `main` | Placeholder — deploy real nao implementado |
+| 2 | **Deploy to Production** | Tag `v*.*.*` | Placeholder — cria GitHub Release |
+
+### Diagrama do Pipeline
 
 ```mermaid
-graph LR
-    A[Push/PR] --> B[Checkout Code]
-    B --> C[Install Dependencies]
-    C --> D[Lint]
-    D --> E[Run Tests]
-    E --> F{Coverage >= 20%?}
-    F -->|Yes| G[Build]
-    F -->|No| H[Fail]
-    G --> I[Deploy]
+graph TD
+    A[Push/PR] --> B[Unit Tests]
+    A --> C[Integration Tests]
+    A --> E[Security Audit]
+    B --> D[Test Coverage]
+    C --> D
+    B --> F[Docker Build + Push]
+    C --> F
+    D --> G{Coverage >= 20%?}
+    G -->|Sim| H[Pass]
+    G -->|Nao| I[Fail]
+    F --> J[Health Check]
 ```
 
 ---
@@ -1172,7 +1190,7 @@ MIT License - Projeto Educacional
 8. 🔎 **CI/CD** (FASE 8) - Em validação
 9. 🛠️ **Performance** (FASE 9) - Em andamento
 10. 🔎 **Swagger** (FASE 10) - Em validação
-11. ⏳ **Deploy** (FASE 11)
+11. 🔎 **Deploy** (FASE 11) - Em validação
 12. ⏳ **Buffer & QA** (FASE 12)
 13. ⏳ **Documentação final** (FASE 13)
 
