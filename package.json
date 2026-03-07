@@ -18,7 +18,7 @@
     "db:migrate:undo:all": "sequelize-cli db:migrate:undo:all",
     "db:seed": "sequelize-cli db:seed:all",
     "db:reset": "npm run db:migrate:undo:all && npm run db:migrate && npm run db:seed",
-    "docker:build": "docker build -t blog-api:latest .",
+    "docker:build": "docker build -t 8fsdt-tech-challenge-2:latest .",
     "docker:up": "docker-compose up -d",
     "docker:down": "docker-compose down",
     "docker:logs": "docker-compose logs -f api",

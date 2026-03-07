@@ -134,7 +134,7 @@ JWT_SECRET=seu_jwt_secret_super_seguro_32_caracteres_minimo
 # Build da imagem otimizada
 npm run docker:build
 # OU
-docker build -t blog-api:1.0.0 .
+docker build -t 8fsdt-tech-challenge-2:1.0.0 .
 ```
 
 **Imagem final:**
@@ -356,7 +356,7 @@ docker-compose restart api
 **Soluções:**
 ```bash
 # 1. Verificar tamanho
-docker images | grep blog-api
+docker images | grep 8fsdt-tech-challenge-2
 
 # 2. Garantir multi-stage build
 # Dockerfile deve ter "AS dependencies" e "AS production"
@@ -365,7 +365,7 @@ docker images | grep blog-api
 cat .dockerignore
 
 # 4. Rebuild
-docker build -t blog-api:latest .
+docker build -t 8fsdt-tech-challenge-2:latest .
 ```
 
 ---
@@ -459,7 +459,7 @@ docker-compose logs --since 2024-02-10T10:00:00 api
 2. **Usar Docker secrets em produção real** (Swarm/Kubernetes)
 3. **Escanear imagem com ferramentas de segurança:**
    ```bash
-   docker scan blog-api:latest
+   docker scan 8fsdt-tech-challenge-2:latest
    ```
 4. **Limitar recursos do container:**
    ```yaml
