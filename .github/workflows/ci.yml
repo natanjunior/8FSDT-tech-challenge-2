@@ -159,7 +159,7 @@ jobs:
           echo "✅ Coverage $COVERAGE% meets 20% threshold"
 
       - name: Upload coverage to Codecov (Optional)
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v5
         continue-on-error: true
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
