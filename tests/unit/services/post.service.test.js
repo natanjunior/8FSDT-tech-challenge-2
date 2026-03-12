@@ -220,6 +220,97 @@ describe('PostService - CRUD with Role-Based Visibility', () => {
 		});
 	});
 
+	describe('replacePost()', () => {
+		test('should replace post with all fields', async () => {
+			const mockPost = {
+				id: '1',
+				title: 'Old Title',
+				content: 'Old Content',
+				status: 'DRAFT',
+				discipline_id: 'disc-1',
+				published_at: null
+			};
+
+			mockPostRepository.findById.mockResolvedValueOnce(mockPost);
+			mockPostRepository.update.mockResolvedValue(mockPost);
+			mockPostRepository.findById.mockResolvedValueOnce({ ...mockPost, title: 'New Title' });
+
+			await postService.replacePost('1', {
+				title: 'New Title',
+				content: 'New Content',
+				status: 'DRAFT'
+			});
+
+			expect(mockPostRepository.update).toHaveBeenCalledWith('1', {
+				title: 'New Title',
+				content: 'New Content',
+				status: 'DRAFT',
+				discipline_id: null
+			});
+		});
+
+		test('should set discipline_id to null when not provided', async () => {
+			const mockPost = {
+				id: '1',
+				title: 'Old Title',
+				discipline_id: 'disc-1',
+				published_at: null
+			};
+
+			mockPostRepository.findById.mockResolvedValueOnce(mockPost);
+			mockPostRepository.update.mockResolvedValue(mockPost);
+			mockPostRepository.findById.mockResolvedValueOnce(mockPost);
+
+			await postService.replacePost('1', {
+				title: 'New Title',
+				content: 'New Content',
+				status: 'DRAFT'
+			});
+
+			expect(mockPostRepository.update).toHaveBeenCalledWith(
+				'1',
+				expect.objectContaining({ discipline_id: null })
+			);
+		});
+
+		test('should set published_at when changing status to PUBLISHED', async () => {
+			const mockPost = {
+				id: '1',
+				published_at: null
+			};
+
+			mockPostRepository.findById.mockResolvedValueOnce(mockPost);
+			mockPostRepository.update.mockResolvedValue(mockPost);
+			mockPostRepository.findById.mockResolvedValueOnce(mockPost);
+
+			await postService.replacePost('1', {
+				title: 'Title',
+				content: 'Content for test',
+				status: 'PUBLISHED'
+			});
+
+			expect(mockPostRepository.update).toHaveBeenCalledWith(
+				'1',
+				expect.objectContaining({
+					status: 'PUBLISHED',
+					published_at: expect.any(Date)
+				})
+			);
+		});
+
+		test('should throw error when post not found', async () => {
+			mockPostRepository.findById.mockResolvedValue(null);
+
+			await expect(
+				postService.replacePost('invalid-id', {
+					title: 'Title',
+					content: 'Content for test',
+					status: 'DRAFT'
+				})
+			).rejects.toThrow('Post não encontrado');
+		});
+	});
+
 	describe('updatePost()', () => {
 		test('should update post successfully (no ownership check)', async () => {
 			const mockPost = {

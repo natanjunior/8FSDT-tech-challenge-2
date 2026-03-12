@@ -7,6 +7,7 @@ const { authorize } = require('../middlewares/authorize');
 const { validate } = require('../middlewares/validate');
 const {
 	createPostValidator,
+	replacePostValidator,
 	updatePostValidator,
 	getPostValidator,
 	deletePostValidator,
@@ -228,10 +229,76 @@ router.post(
  * @swagger
  * /posts/{id}:
  *   put:
- *     summary: Atualizar post
+ *     summary: Substituir post (completo)
  *     description: |
- *       Atualiza um post existente. Apenas TEACHER pode atualizar.
- *       Sem ownership check - qualquer TEACHER pode editar qualquer post.
+ *       Substitui um post existente por completo. Todos os campos obrigatórios devem ser enviados.
+ *       Apenas TEACHER pode substituir. Sem ownership check.
+ *     tags: [Posts]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: ID do post
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/ReplacePostRequest'
+ *     responses:
+ *       200:
+ *         description: Post substituído com sucesso
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Post'
+ *       400:
+ *         description: Dados inválidos
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       404:
+ *         description: Post não encontrado
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       401:
+ *         description: Token não fornecido ou inválido
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       403:
+ *         description: Acesso negado (apenas TEACHER)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+router.put(
+	'/:id',
+	authenticate,
+	authorize(['TEACHER']),
+	replacePostValidator,
+	validate,
+	(req, res) => postController.replacePost(req, res)
+);
+
+/**
+ * @swagger
+ * /posts/{id}:
+ *   patch:
+ *     summary: Atualizar post (parcial)
+ *     description: |
+ *       Atualiza parcialmente um post existente. Apenas os campos enviados serão alterados.
+ *       Apenas TEACHER pode atualizar. Sem ownership check.
  *     tags: [Posts]
  *     security:
  *       - bearerAuth: []
@@ -281,7 +348,7 @@ router.post(
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.put(
+router.patch(
 	'/:id',
 	authenticate,
 	authorize(['TEACHER']),

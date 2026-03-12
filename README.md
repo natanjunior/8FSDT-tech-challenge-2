@@ -521,7 +521,38 @@ Authorization: Bearer <token>
 
 #### `PUT /posts/:id`
 
-**Descrição**: Atualiza post existente.
+**Descrição**: Substitui post por completo (todos os campos obrigatórios).
+
+**Autenticação**: Requerida (apenas TEACHER)
+
+**Observação**: Qualquer professor pode editar qualquer post (sem ownership check).
+
+**Request Body** (campos obrigatórios):
+```json
+{
+  "title": "Título completo",
+  "content": "Conteúdo completo",
+  "status": "PUBLISHED",
+  "discipline_id": "uuid-disciplina (opcional)"
+}
+```
+
+**Response 200 OK**: Retorna post substituído
+
+**Response 400 Bad Request**: Campos obrigatórios ausentes
+
+**Response 404 Not Found**:
+```json
+{
+  "error": "Post não encontrado"
+}
+```
+
+---
+
+#### `PATCH /posts/:id`
+
+**Descrição**: Atualiza parcialmente um post existente (apenas campos enviados são alterados).
 
 **Autenticação**: Requerida (apenas TEACHER)
 

@@ -157,9 +157,65 @@ describe('Posts Integration Tests', () => {
 	});
 
 	describe('PUT /posts/:id', () => {
-		test('TEACHER deve editar post (sem ownership check)', async () => {
+		test('TEACHER deve substituir post completamente', async () => {
 			const response = await request(app)
 				.put('/posts/880e8400-e29b-41d4-a716-446655440001')
+				.set('Authorization', `Bearer ${teacherToken}`)
+				.send({
+					title: 'Título Substituído Completo',
+					content: 'Conteúdo completamente substituído via teste',
+					status: 'DRAFT'
+				});
+
+			expect(response.status).toBe(200);
+			expect(response.body.title).toBe('Título Substituído Completo');
+			expect(response.body.content).toBe('Conteúdo completamente substituído via teste');
+			expect(response.body.status).toBe('DRAFT');
+		});
+
+		test('PUT sem campo obrigatório deve retornar 400', async () => {
+			const response = await request(app)
+				.put('/posts/880e8400-e29b-41d4-a716-446655440001')
+				.set('Authorization', `Bearer ${teacherToken}`)
+				.send({
+					title: 'Apenas Título'
+				});
+
+			expect(response.status).toBe(400);
+		});
+
+		test('STUDENT não deve substituir post (403)', async () => {
+			const response = await request(app)
+				.put('/posts/880e8400-e29b-41d4-a716-446655440001')
+				.set('Authorization', `Bearer ${studentToken}`)
+				.send({
+					title: 'Tentativa de Substituição',
+					content: 'Conteúdo da tentativa de substituição',
+					status: 'DRAFT'
+				});
+
+			expect(response.status).toBe(403);
+		});
+
+		test('PUT sem discipline_id deve setar como null', async () => {
+			const response = await request(app)
+				.put('/posts/880e8400-e29b-41d4-a716-446655440001')
+				.set('Authorization', `Bearer ${teacherToken}`)
+				.send({
+					title: 'Post Sem Disciplina Teste',
+					content: 'Conteúdo sem disciplina definida',
+					status: 'DRAFT'
+				});
+
+			expect(response.status).toBe(200);
+			expect(response.body.discipline).toBeNull();
+		});
+	});
+
+	describe('PATCH /posts/:id', () => {
+		test('TEACHER deve editar post parcialmente (sem ownership check)', async () => {
+			const response = await request(app)
+				.patch('/posts/880e8400-e29b-41d4-a716-446655440001')
 				.set('Authorization', `Bearer ${teacherToken}`)
 				.send({
 					title: 'Título Editado via Teste'
@@ -173,7 +229,7 @@ describe('Posts Integration Tests', () => {
 
 		test('STUDENT não deve editar post (403)', async () => {
 			const response = await request(app)
-				.put('/posts/880e8400-e29b-41d4-a716-446655440001')
+				.patch('/posts/880e8400-e29b-41d4-a716-446655440001')
 				.set('Authorization', `Bearer ${studentToken}`)
 				.send({
 					title: 'Tentativa de Edição'

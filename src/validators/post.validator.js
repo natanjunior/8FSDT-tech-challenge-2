@@ -34,8 +34,42 @@ const createPostValidator = [
 ];
 
 /**
- * Validador para atualização de posts
+ * Validador para substituição completa de posts
  * PUT /posts/:id
+ */
+const replacePostValidator = [
+	param('id').isUUID().withMessage('ID do post deve ser um UUID válido'),
+
+	body('title')
+		.trim()
+		.notEmpty()
+		.withMessage('Título é obrigatório')
+		.isLength({ min: 5, max: 255 })
+		.withMessage('Título deve ter entre 5 e 255 caracteres'),
+
+	body('content')
+		.trim()
+		.notEmpty()
+		.withMessage('Conteúdo é obrigatório')
+		.isLength({ min: 10 })
+		.withMessage('Conteúdo deve ter no mínimo 10 caracteres'),
+
+	body('status')
+		.notEmpty()
+		.withMessage('Status é obrigatório')
+		.isIn(['DRAFT', 'PUBLISHED', 'ARCHIVED'])
+		.withMessage('Status deve ser DRAFT, PUBLISHED ou ARCHIVED')
+		.customSanitizer((value) => value?.toUpperCase()),
+
+	body('discipline_id')
+		.optional()
+		.isUUID()
+		.withMessage('discipline_id deve ser um UUID válido')
+];
+
+/**
+ * Validador para atualização parcial de posts
+ * PATCH /posts/:id
  */
 const updatePostValidator = [
 	param('id').isUUID().withMessage('ID do post deve ser um UUID válido'),
@@ -136,6 +170,7 @@ const searchPostsValidator = [
 
 module.exports = {
 	createPostValidator,
+	replacePostValidator,
 	updatePostValidator,
 	getPostValidator,
 	deletePostValidator,
