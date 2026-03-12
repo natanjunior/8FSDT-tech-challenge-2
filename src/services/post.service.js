@@ -1,6 +1,7 @@
 'use strict';
 
 const { Op } = require('sequelize');
+const { serializePost, serializePosts } = require('../utils/post.serializer');
 
 /**
  * PostService - CRUD de Posts com Visibilidade por Role
@@ -40,7 +41,7 @@ class PostService {
 		const totalPages = Math.ceil(count / limit);
 
 		return {
-			data: rows,
+			data: serializePosts(rows),
 			pagination: {
 				page,
 				limit,
@@ -62,7 +63,7 @@ class PostService {
 			throw new Error('Post não encontrado');
 		}
 
-		return post;
+		return serializePost(post);
 	}
 
 	/**
@@ -192,7 +193,7 @@ class PostService {
 		const totalPages = Math.ceil(count / limitNum);
 
 		return {
-			data: rows,
+			data: serializePosts(rows),
 			pagination: {
 				page: pageNum,
 				limit: limitNum,

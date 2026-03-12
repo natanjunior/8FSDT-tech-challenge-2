@@ -30,6 +30,12 @@ describe('Posts Integration Tests', () => {
 			// Todos devem ser PUBLISHED
 			response.body.data.forEach((post) => {
 				expect(post.status).toBe('PUBLISHED');
+				// Não deve conter campos de FK redundantes
+				expect(post).not.toHaveProperty('author_id');
+				expect(post).not.toHaveProperty('discipline_id');
+				// Deve conter objetos aninhados
+				expect(post).toHaveProperty('author');
+				expect(post).toHaveProperty('discipline');
 			});
 		});
 
@@ -68,7 +74,14 @@ describe('Posts Integration Tests', () => {
 			expect(response.body).toHaveProperty('id');
 			expect(response.body).toHaveProperty('title');
 			expect(response.body).toHaveProperty('author');
+			expect(response.body.author).toHaveProperty('id');
+			expect(response.body.author).toHaveProperty('name');
+			expect(response.body.author).toHaveProperty('role');
 			expect(response.body).toHaveProperty('discipline');
+			expect(response.body.discipline).toHaveProperty('id');
+			expect(response.body.discipline).toHaveProperty('label');
+			expect(response.body).not.toHaveProperty('author_id');
+			expect(response.body).not.toHaveProperty('discipline_id');
 			expect(response.body.status).toBe('PUBLISHED'); // v12: string direto
 		});
 
@@ -96,6 +109,10 @@ describe('Posts Integration Tests', () => {
 			expect(response.status).toBe(201);
 			expect(response.body.status).toBe('PUBLISHED'); // v12: string direto
 			expect(response.body.published_at).not.toBeNull();
+			expect(response.body).not.toHaveProperty('author_id');
+			expect(response.body).not.toHaveProperty('discipline_id');
+			expect(response.body).toHaveProperty('author');
+			expect(response.body).toHaveProperty('discipline');
 		});
 
 		test('TEACHER deve criar post com status DRAFT', async () => {
@@ -150,6 +167,8 @@ describe('Posts Integration Tests', () => {
 
 			expect(response.status).toBe(200);
 			expect(response.body.title).toBe('Título Editado via Teste');
+			expect(response.body).not.toHaveProperty('author_id');
+			expect(response.body).not.toHaveProperty('discipline_id');
 		});
 
 		test('STUDENT não deve editar post (403)', async () => {
