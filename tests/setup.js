@@ -51,6 +51,15 @@ beforeAll(async () => {
 			discipline_id: '660e8400-e29b-41d4-a716-446655440002',
 			status: 'DRAFT',
 			published_at: null
+		},
+		{
+			id: '880e8400-e29b-41d4-a716-446655440003',
+			title: 'Post Editável',
+			content: 'Conteúdo do post editável para testes de PUT e PATCH',
+			author_id: '550e8400-e29b-41d4-a716-446655440001',
+			discipline_id: '660e8400-e29b-41d4-a716-446655440001',
+			status: 'PUBLISHED',
+			published_at: new Date()
 		}
 	]);
 });

@@ -159,7 +159,7 @@ describe('Posts Integration Tests', () => {
 	describe('PUT /posts/:id', () => {
 		test('TEACHER deve substituir post completamente', async () => {
 			const response = await request(app)
-				.put('/posts/880e8400-e29b-41d4-a716-446655440001')
+				.put('/posts/880e8400-e29b-41d4-a716-446655440003')
 				.set('Authorization', `Bearer ${teacherToken}`)
 				.send({
 					title: 'Título Substituído Completo',
@@ -175,7 +175,7 @@ describe('Posts Integration Tests', () => {
 
 		test('PUT sem campo obrigatório deve retornar 400', async () => {
 			const response = await request(app)
-				.put('/posts/880e8400-e29b-41d4-a716-446655440001')
+				.put('/posts/880e8400-e29b-41d4-a716-446655440003')
 				.set('Authorization', `Bearer ${teacherToken}`)
 				.send({
 					title: 'Apenas Título'
@@ -186,7 +186,7 @@ describe('Posts Integration Tests', () => {
 
 		test('STUDENT não deve substituir post (403)', async () => {
 			const response = await request(app)
-				.put('/posts/880e8400-e29b-41d4-a716-446655440001')
+				.put('/posts/880e8400-e29b-41d4-a716-446655440003')
 				.set('Authorization', `Bearer ${studentToken}`)
 				.send({
 					title: 'Tentativa de Substituição',
@@ -199,7 +199,7 @@ describe('Posts Integration Tests', () => {
 
 		test('PUT sem discipline_id deve setar como null', async () => {
 			const response = await request(app)
-				.put('/posts/880e8400-e29b-41d4-a716-446655440001')
+				.put('/posts/880e8400-e29b-41d4-a716-446655440003')
 				.set('Authorization', `Bearer ${teacherToken}`)
 				.send({
 					title: 'Post Sem Disciplina Teste',
@@ -215,7 +215,7 @@ describe('Posts Integration Tests', () => {
 	describe('PATCH /posts/:id', () => {
 		test('TEACHER deve editar post parcialmente (sem ownership check)', async () => {
 			const response = await request(app)
-				.patch('/posts/880e8400-e29b-41d4-a716-446655440001')
+				.patch('/posts/880e8400-e29b-41d4-a716-446655440003')
 				.set('Authorization', `Bearer ${teacherToken}`)
 				.send({
 					title: 'Título Editado via Teste'
@@ -229,7 +229,7 @@ describe('Posts Integration Tests', () => {
 
 		test('STUDENT não deve editar post (403)', async () => {
 			const response = await request(app)
-				.patch('/posts/880e8400-e29b-41d4-a716-446655440001')
+				.patch('/posts/880e8400-e29b-41d4-a716-446655440003')
 				.set('Authorization', `Bearer ${studentToken}`)
 				.send({
 					title: 'Tentativa de Edição'
