@@ -1218,9 +1218,9 @@ MIT License - Projeto Educacional
 5. ✅ **Post Reads + Disciplines** (FASE 5) - Concluído
 6. ✅ **Integração Final + Testes E2E** (FASE 6) - Concluído
 7. ✅ **Docker** (FASE 7) - Concluído
-8. 🔎 **CI/CD** (FASE 8) - Em validação
+8. ✅ **CI/CD** (FASE 8) - Em validação
 9. 🛠️ **Performance** (FASE 9) - Em andamento
-10. 🔎 **Swagger** (FASE 10) - Em validação
+10. 🔎 **Swagger** (FASE 10) - Concluído
 11. 🔎 **Deploy** (FASE 11) - Em validação
 12. ⏳ **Buffer & QA** (FASE 12)
 13. ⏳ **Documentação final** (FASE 13)
