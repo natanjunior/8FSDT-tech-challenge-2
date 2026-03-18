@@ -30,6 +30,12 @@ describe('Posts Integration Tests', () => {
 			// Todos devem ser PUBLISHED
 			response.body.data.forEach((post) => {
 				expect(post.status).toBe('PUBLISHED');
+				// Não deve conter campos de FK redundantes
+				expect(post).not.toHaveProperty('author_id');
+				expect(post).not.toHaveProperty('discipline_id');
+				// Deve conter objetos aninhados
+				expect(post).toHaveProperty('author');
+				expect(post).toHaveProperty('discipline');
 			});
 		});
 
@@ -68,7 +74,14 @@ describe('Posts Integration Tests', () => {
 			expect(response.body).toHaveProperty('id');
 			expect(response.body).toHaveProperty('title');
 			expect(response.body).toHaveProperty('author');
+			expect(response.body.author).toHaveProperty('id');
+			expect(response.body.author).toHaveProperty('name');
+			expect(response.body.author).toHaveProperty('role');
 			expect(response.body).toHaveProperty('discipline');
+			expect(response.body.discipline).toHaveProperty('id');
+			expect(response.body.discipline).toHaveProperty('label');
+			expect(response.body).not.toHaveProperty('author_id');
+			expect(response.body).not.toHaveProperty('discipline_id');
 			expect(response.body.status).toBe('PUBLISHED'); // v12: string direto
 		});
 
@@ -96,6 +109,10 @@ describe('Posts Integration Tests', () => {
 			expect(response.status).toBe(201);
 			expect(response.body.status).toBe('PUBLISHED'); // v12: string direto
 			expect(response.body.published_at).not.toBeNull();
+			expect(response.body).not.toHaveProperty('author_id');
+			expect(response.body).not.toHaveProperty('discipline_id');
+			expect(response.body).toHaveProperty('author');
+			expect(response.body).toHaveProperty('discipline');
 		});
 
 		test('TEACHER deve criar post com status DRAFT', async () => {
@@ -140,9 +157,65 @@ describe('Posts Integration Tests', () => {
 	});
 
 	describe('PUT /posts/:id', () => {
-		test('TEACHER deve editar post (sem ownership check)', async () => {
+		test('TEACHER deve substituir post completamente', async () => {
 			const response = await request(app)
-				.put('/posts/880e8400-e29b-41d4-a716-446655440001')
+				.put('/posts/880e8400-e29b-41d4-a716-446655440003')
+				.set('Authorization', `Bearer ${teacherToken}`)
+				.send({
+					title: 'Título Substituído Completo',
+					content: 'Conteúdo completamente substituído via teste',
+					status: 'DRAFT'
+				});
+
+			expect(response.status).toBe(200);
+			expect(response.body.title).toBe('Título Substituído Completo');
+			expect(response.body.content).toBe('Conteúdo completamente substituído via teste');
+			expect(response.body.status).toBe('DRAFT');
+		});
+
+		test('PUT sem campo obrigatório deve retornar 400', async () => {
+			const response = await request(app)
+				.put('/posts/880e8400-e29b-41d4-a716-446655440003')
+				.set('Authorization', `Bearer ${teacherToken}`)
+				.send({
+					title: 'Apenas Título'
+				});
+
+			expect(response.status).toBe(400);
+		});
+
+		test('STUDENT não deve substituir post (403)', async () => {
+			const response = await request(app)
+				.put('/posts/880e8400-e29b-41d4-a716-446655440003')
+				.set('Authorization', `Bearer ${studentToken}`)
+				.send({
+					title: 'Tentativa de Substituição',
+					content: 'Conteúdo da tentativa de substituição',
+					status: 'DRAFT'
+				});
+
+			expect(response.status).toBe(403);
+		});
+
+		test('PUT sem discipline_id deve setar como null', async () => {
+			const response = await request(app)
+				.put('/posts/880e8400-e29b-41d4-a716-446655440003')
+				.set('Authorization', `Bearer ${teacherToken}`)
+				.send({
+					title: 'Post Sem Disciplina Teste',
+					content: 'Conteúdo sem disciplina definida',
+					status: 'DRAFT'
+				});
+
+			expect(response.status).toBe(200);
+			expect(response.body.discipline).toBeNull();
+		});
+	});
+
+	describe('PATCH /posts/:id', () => {
+		test('TEACHER deve editar post parcialmente (sem ownership check)', async () => {
+			const response = await request(app)
+				.patch('/posts/880e8400-e29b-41d4-a716-446655440003')
 				.set('Authorization', `Bearer ${teacherToken}`)
 				.send({
 					title: 'Título Editado via Teste'
@@ -150,11 +223,13 @@ describe('Posts Integration Tests', () => {
 
 			expect(response.status).toBe(200);
 			expect(response.body.title).toBe('Título Editado via Teste');
+			expect(response.body).not.toHaveProperty('author_id');
+			expect(response.body).not.toHaveProperty('discipline_id');
 		});
 
 		test('STUDENT não deve editar post (403)', async () => {
 			const response = await request(app)
-				.put('/posts/880e8400-e29b-41d4-a716-446655440001')
+				.patch('/posts/880e8400-e29b-41d4-a716-446655440003')
 				.set('Authorization', `Bearer ${studentToken}`)
 				.send({
 					title: 'Tentativa de Edição'

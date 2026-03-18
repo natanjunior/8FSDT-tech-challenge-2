@@ -233,6 +233,32 @@ const options = {
 						}
 					}
 				},
+				ReplacePostRequest: {
+					type: 'object',
+					required: ['title', 'content', 'status'],
+					properties: {
+						title: {
+							type: 'string',
+							minLength: 5,
+							example: 'Introdução à Álgebra Linear'
+						},
+						content: {
+							type: 'string',
+							minLength: 10,
+							example: 'Álgebra Linear é fundamental para...'
+						},
+						discipline_id: {
+							type: 'string',
+							format: 'uuid',
+							example: '660e8400-e29b-41d4-a716-446655440001'
+						},
+						status: {
+							type: 'string',
+							enum: ['DRAFT', 'PUBLISHED', 'ARCHIVED'],
+							example: 'PUBLISHED'
+						}
+					}
+				},
 				UpdatePostRequest: {
 					type: 'object',
 					properties: {

@@ -1,6 +1,7 @@
 'use strict';
 
 const { Op } = require('sequelize');
+const { serializePost, serializePosts } = require('../utils/post.serializer');
 
 /**
  * PostService - CRUD de Posts com Visibilidade por Role
@@ -40,7 +41,7 @@ class PostService {
 		const totalPages = Math.ceil(count / limit);
 
 		return {
-			data: rows,
+			data: serializePosts(rows),
 			pagination: {
 				page,
 				limit,
@@ -62,7 +63,7 @@ class PostService {
 			throw new Error('Post não encontrado');
 		}
 
-		return post;
+		return serializePost(post);
 	}
 
 	/**
@@ -96,7 +97,37 @@ class PostService {
 	}
 
 	/**
-	 * Atualiza post (SEM ownership check - qualquer TEACHER pode editar)
+	 * Substitui post completamente (SEM ownership check - qualquer TEACHER pode editar)
+	 * @param {string} id - UUID do post
+	 * @param {Object} data - { title, content, status, discipline_id? }
+	 * @returns {Promise<Object>} Post atualizado
+	 */
+	async replacePost(id, data) {
+		const post = await this.postRepository.findById(id);
+
+		if (!post) {
+			throw new Error('Post não encontrado');
+		}
+
+		const fullData = {
+			title: data.title,
+			content: data.content,
+			status: data.status,
+			discipline_id: data.discipline_id || null
+		};
+
+		// Se alterou status para PUBLISHED e published_at era null
+		if (fullData.status === 'PUBLISHED' && !post.published_at) {
+			fullData.published_at = new Date();
+		}
+
+		await this.postRepository.update(id, fullData);
+
+		return await this.getPostById(id);
+	}
+
+	/**
+	 * Atualiza post parcialmente (SEM ownership check - qualquer TEACHER pode editar)
 	 * @param {string} id - UUID do post
 	 * @param {Object} data - Campos a atualizar
 	 * @returns {Promise<Object>} Post atualizado
@@ -192,7 +223,7 @@ class PostService {
 		const totalPages = Math.ceil(count / limitNum);
 
 		return {
-			data: rows,
+			data: serializePosts(rows),
 			pagination: {
 				page: pageNum,
 				limit: limitNum,

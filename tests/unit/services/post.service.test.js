@@ -30,8 +30,13 @@ describe('PostService - CRUD with Role-Based Visibility', () => {
 
 	describe('listPosts()', () => {
 		const mockPosts = [
-			{ id: '1', title: 'Post 1', status: 'PUBLISHED' },
-			{ id: '2', title: 'Post 2', status: 'DRAFT' }
+			{ id: '1', title: 'Post 1', status: 'PUBLISHED', author_id: 'u1', discipline_id: 'd1', author: { id: 'u1', name: 'Teacher', role: 'TEACHER' }, discipline: { id: 'd1', label: 'Math' } },
+			{ id: '2', title: 'Post 2', status: 'DRAFT', author_id: 'u1', discipline_id: 'd1', author: { id: 'u1', name: 'Teacher', role: 'TEACHER' }, discipline: { id: 'd1', label: 'Math' } }
+		];
+
+		const serializedPosts = [
+			{ id: '1', title: 'Post 1', status: 'PUBLISHED', author: { id: 'u1', name: 'Teacher', role: 'TEACHER' }, discipline: { id: 'd1', label: 'Math' } },
+			{ id: '2', title: 'Post 2', status: 'DRAFT', author: { id: 'u1', name: 'Teacher', role: 'TEACHER' }, discipline: { id: 'd1', label: 'Math' } }
 		];
 
 		test('should return all posts for TEACHER (no status filter)', async () => {
@@ -46,7 +51,12 @@ describe('PostService - CRUD with Role-Based Visibility', () => {
 				{}, // No status filter for TEACHER
 				{ limit: 20, offset: 0 }
 			);
-			expect(result.data).toEqual(mockPosts);
+			expect(result.data).toEqual(serializedPosts);
+			// Verify FK fields are stripped
+			result.data.forEach((post) => {
+				expect(post).not.toHaveProperty('author_id');
+				expect(post).not.toHaveProperty('discipline_id');
+			});
 			expect(result.pagination).toEqual({
 				page: 1,
 				limit: 20,
@@ -68,7 +78,7 @@ describe('PostService - CRUD with Role-Based Visibility', () => {
 				{ status: 'PUBLISHED' },
 				{ limit: 20, offset: 0 }
 			);
-			expect(result.data).toEqual(publishedPosts);
+			expect(result.data).toEqual([serializedPosts[0]]);
 		});
 
 		test('should return only PUBLISHED posts for unauthenticated (null)', async () => {
@@ -84,7 +94,7 @@ describe('PostService - CRUD with Role-Based Visibility', () => {
 				{ status: 'PUBLISHED' },
 				{ limit: 20, offset: 0 }
 			);
-			expect(result.data).toEqual(publishedPosts);
+			expect(result.data).toEqual([serializedPosts[0]]);
 		});
 
 		test('should return correct pagination', async () => {
@@ -123,13 +133,15 @@ describe('PostService - CRUD with Role-Based Visibility', () => {
 	});
 
 	describe('getPostById()', () => {
-		test('should return post with includes', async () => {
+		test('should return post with includes and without FK fields', async () => {
 			const mockPost = {
 				id: '1',
 				title: 'Test Post',
 				status: 'PUBLISHED',
-				author: { id: '1', name: 'Teacher' },
-				discipline: { id: '1', label: 'Math' }
+				author_id: 'u1',
+				discipline_id: 'd1',
+				author: { id: 'u1', name: 'Teacher', role: 'TEACHER' },
+				discipline: { id: 'd1', label: 'Math' }
 			};
 
 			mockPostRepository.findById.mockResolvedValue(mockPost);
@@ -137,7 +149,10 @@ describe('PostService - CRUD with Role-Based Visibility', () => {
 			const result = await postService.getPostById('1');
 
 			expect(mockPostRepository.findById).toHaveBeenCalledWith('1');
-			expect(result).toEqual(mockPost);
+			expect(result).not.toHaveProperty('author_id');
+			expect(result).not.toHaveProperty('discipline_id');
+			expect(result.author).toEqual({ id: 'u1', name: 'Teacher', role: 'TEACHER' });
+			expect(result.discipline).toEqual({ id: 'd1', label: 'Math' });
 		});
 
 		test('should throw error when post not found', async () => {
@@ -157,8 +172,12 @@ describe('PostService - CRUD with Role-Based Visibility', () => {
 				discipline_id: '1',
 				status: 'DRAFT'
 			};
-			const mockCreatedPost = { id: '1', ...mockData };
-			const mockPostWithIncludes = { ...mockCreatedPost, author: {}, discipline: {} };
+			const mockCreatedPost = { id: '1', ...mockData, author_id: 'user-123' };
+			const mockPostWithIncludes = {
+				...mockCreatedPost,
+				author: { id: 'user-123', name: 'Teacher', role: 'TEACHER' },
+				discipline: { id: '1', label: 'Math' }
+			};
 
 			mockPostRepository.create.mockResolvedValue(mockCreatedPost);
 			mockPostRepository.findById.mockResolvedValue(mockPostWithIncludes);
@@ -175,7 +194,10 @@ describe('PostService - CRUD with Role-Based Visibility', () => {
 					published_at: null // DRAFT doesn't set published_at
 				})
 			);
-			expect(result).toEqual(mockPostWithIncludes);
+			// Result should be serialized (no FK fields)
+			expect(result).not.toHaveProperty('author_id');
+			expect(result).not.toHaveProperty('discipline_id');
+			expect(result.author).toEqual({ id: 'user-123', name: 'Teacher', role: 'TEACHER' });
 		});
 
 		test('should set published_at when status is PUBLISHED', async () => {
@@ -195,6 +217,97 @@ describe('PostService - CRUD with Role-Based Visibility', () => {
 					published_at: expect.any(Date)
 				})
 			);
+		});
+	});
+
+	describe('replacePost()', () => {
+		test('should replace post with all fields', async () => {
+			const mockPost = {
+				id: '1',
+				title: 'Old Title',
+				content: 'Old Content',
+				status: 'DRAFT',
+				discipline_id: 'disc-1',
+				published_at: null
+			};
+
+			mockPostRepository.findById.mockResolvedValueOnce(mockPost);
+			mockPostRepository.update.mockResolvedValue(mockPost);
+			mockPostRepository.findById.mockResolvedValueOnce({ ...mockPost, title: 'New Title' });
+
+			await postService.replacePost('1', {
+				title: 'New Title',
+				content: 'New Content',
+				status: 'DRAFT'
+			});
+
+			expect(mockPostRepository.update).toHaveBeenCalledWith('1', {
+				title: 'New Title',
+				content: 'New Content',
+				status: 'DRAFT',
+				discipline_id: null
+			});
+		});
+
+		test('should set discipline_id to null when not provided', async () => {
+			const mockPost = {
+				id: '1',
+				title: 'Old Title',
+				discipline_id: 'disc-1',
+				published_at: null
+			};
+
+			mockPostRepository.findById.mockResolvedValueOnce(mockPost);
+			mockPostRepository.update.mockResolvedValue(mockPost);
+			mockPostRepository.findById.mockResolvedValueOnce(mockPost);
+
+			await postService.replacePost('1', {
+				title: 'New Title',
+				content: 'New Content',
+				status: 'DRAFT'
+			});
+
+			expect(mockPostRepository.update).toHaveBeenCalledWith(
+				'1',
+				expect.objectContaining({ discipline_id: null })
+			);
+		});
+
+		test('should set published_at when changing status to PUBLISHED', async () => {
+			const mockPost = {
+				id: '1',
+				published_at: null
+			};
+
+			mockPostRepository.findById.mockResolvedValueOnce(mockPost);
+			mockPostRepository.update.mockResolvedValue(mockPost);
+			mockPostRepository.findById.mockResolvedValueOnce(mockPost);
+
+			await postService.replacePost('1', {
+				title: 'Title',
+				content: 'Content for test',
+				status: 'PUBLISHED'
+			});
+
+			expect(mockPostRepository.update).toHaveBeenCalledWith(
+				'1',
+				expect.objectContaining({
+					status: 'PUBLISHED',
+					published_at: expect.any(Date)
+				})
+			);
+		});
+
+		test('should throw error when post not found', async () => {
+			mockPostRepository.findById.mockResolvedValue(null);
+
+			await expect(
+				postService.replacePost('invalid-id', {
+					title: 'Title',
+					content: 'Content for test',
+					status: 'DRAFT'
+				})
+			).rejects.toThrow('Post não encontrado');
 		});
 	});
 
@@ -271,18 +384,14 @@ describe('PostService - CRUD with Role-Based Visibility', () => {
 
 	describe('searchPosts()', () => {
 		test('should call listPosts when no search parameters provided', async () => {
-			const mockResult = {
-				data: [],
-				pagination: { page: 1, limit: 20, total: 0, totalPages: 0 }
-			};
-
 			mockPostRepository.findAllPaginated.mockResolvedValue({ count: 0, rows: [] });
 
 			const result = await postService.searchPosts({}, 'TEACHER');
 
 			// When no search params, it calls listPosts which calls findAllPaginated
 			expect(mockPostRepository.findAllPaginated).toHaveBeenCalled();
-			expect(result).toEqual(mockResult);
+			expect(result.data).toEqual([]);
+			expect(result.pagination).toEqual({ page: 1, limit: 20, total: 0, totalPages: 0 });
 		});
 
 		test('should filter by query (title OR content)', async () => {

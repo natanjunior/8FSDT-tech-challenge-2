@@ -66,7 +66,8 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIs...
 | GET | `/posts/search` | Buscar posts | Opcional | Mesmas regras de listagem |
 | GET | `/posts/:id` | Buscar post por ID | Sim | Todos |
 | POST | `/posts` | Criar post | Sim | TEACHER |
-| PUT | `/posts/:id` | Atualizar post | Sim | TEACHER |
+| PUT | `/posts/:id` | Substituir post (completo) | Sim | TEACHER |
+| PATCH | `/posts/:id` | Atualizar post (parcial) | Sim | TEACHER |
 | DELETE | `/posts/:id` | Deletar post (hard delete) | Sim | TEACHER |
 
 ### Post Reads
@@ -131,15 +132,27 @@ curl "http://localhost:3030/posts/search?title=introducao"
 curl "http://localhost:3030/posts/search?author=professor"
 ```
 
-### Atualizar Post (TEACHER)
+### Substituir Post - PUT (TEACHER)
 
 ```bash
 curl -X PUT http://localhost:3030/posts/:id \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer <token>" \
   -d '{
-    "title": "Titulo Atualizado",
+    "title": "Titulo Completo",
+    "content": "Conteudo completo obrigatorio",
     "status": "PUBLISHED"
+  }'
+```
+
+### Atualizar Post Parcialmente - PATCH (TEACHER)
+
+```bash
+curl -X PATCH http://localhost:3030/posts/:id \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <token>" \
+  -d '{
+    "title": "Apenas o titulo atualizado"
   }'
 ```
 

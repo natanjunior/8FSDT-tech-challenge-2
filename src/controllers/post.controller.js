@@ -65,8 +65,31 @@ class PostController {
 	}
 
 	/**
-	 * Atualiza post (SEM ownership check - qualquer TEACHER pode editar)
+	 * Substitui post completamente (SEM ownership check - qualquer TEACHER pode editar)
 	 * PUT /posts/:id
+	 * Body: { title, content, status, discipline_id? }
+	 * Header: Authorization: Bearer <token> (obrigatório - TEACHER)
+	 */
+	async replacePost(req, res) {
+		try {
+			const { id } = req.params;
+			const data = req.body;
+
+			const post = await this.postService.replacePost(id, data);
+
+			return res.status(200).json(post);
+		} catch (error) {
+			if (error.message === 'Post não encontrado') {
+				return res.status(404).json({ error: error.message });
+			}
+
+			return res.status(400).json({ error: error.message });
+		}
+	}
+
+	/**
+	 * Atualiza post parcialmente (SEM ownership check - qualquer TEACHER pode editar)
+	 * PATCH /posts/:id
 	 * Body: { title?, content?, discipline_id?, status? }
 	 * Header: Authorization: Bearer <token> (obrigatório - TEACHER)
 	 */
