@@ -19,6 +19,12 @@ beforeAll(async () => {
 			role: 'TEACHER'
 		},
 		{
+			id: '550e8400-e29b-41d4-a716-446655440002',
+			name: 'Profa. Maria Santos',
+			email: 'maria.santos@escola.com',
+			role: 'TEACHER'
+		},
+		{
 			id: '550e8400-e29b-41d4-a716-446655440003',
 			name: 'Aluno Pedro Costa',
 			email: 'pedro.costa@aluno.com',
@@ -29,7 +35,9 @@ beforeAll(async () => {
 	// Criar disciplinas
 	await Discipline.bulkCreate([
 		{ id: '660e8400-e29b-41d4-a716-446655440001', label: 'Matemática' },
-		{ id: '660e8400-e29b-41d4-a716-446655440002', label: 'Português' }
+		{ id: '660e8400-e29b-41d4-a716-446655440002', label: 'Português' },
+		{ id: '660e8400-e29b-41d4-a716-446655440003', label: 'Ciências' },
+		{ id: '660e8400-e29b-41d4-a716-446655440004', label: 'História' }
 	]);
 
 	// Criar posts de teste
@@ -60,6 +68,15 @@ beforeAll(async () => {
 			discipline_id: '660e8400-e29b-41d4-a716-446655440001',
 			status: 'PUBLISHED',
 			published_at: new Date()
+		},
+		{
+			id: '880e8400-e29b-41d4-a716-446655440005',
+			title: 'Post Rascunho para Visibilidade',
+			content: 'Conteúdo do post rascunho para testes de visibilidade em GET /posts/:id',
+			author_id: '550e8400-e29b-41d4-a716-446655440001',
+			discipline_id: '660e8400-e29b-41d4-a716-446655440001',
+			status: 'DRAFT',
+			published_at: null
 		}
 	]);
 });

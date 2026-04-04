@@ -65,7 +65,7 @@ describe('Posts Integration Tests', () => {
 	});
 
 	describe('GET /posts/:id', () => {
-		test('deve retornar post específico com detalhes', async () => {
+		test('TEACHER deve retornar post PUBLISHED com detalhes', async () => {
 			const response = await request(app)
 				.get('/posts/880e8400-e29b-41d4-a716-446655440001')
 				.set('Authorization', `Bearer ${teacherToken}`);
@@ -82,10 +82,55 @@ describe('Posts Integration Tests', () => {
 			expect(response.body.discipline).toHaveProperty('label');
 			expect(response.body).not.toHaveProperty('author_id');
 			expect(response.body).not.toHaveProperty('discipline_id');
-			expect(response.body.status).toBe('PUBLISHED'); // v12: string direto
+			expect(response.body.status).toBe('PUBLISHED');
 		});
 
-		test('deve retornar 404 com id inválido', async () => {
+		test('sem token deve retornar post PUBLISHED (200)', async () => {
+			const response = await request(app)
+				.get('/posts/880e8400-e29b-41d4-a716-446655440001');
+
+			expect(response.status).toBe(200);
+			expect(response.body.status).toBe('PUBLISHED');
+			expect(response.body).toHaveProperty('author');
+			expect(response.body).toHaveProperty('discipline');
+		});
+
+		test('sem token deve retornar 403 para post DRAFT', async () => {
+			const response = await request(app)
+				.get('/posts/880e8400-e29b-41d4-a716-446655440005');
+
+			expect(response.status).toBe(403);
+			expect(response.body).toHaveProperty('error');
+		});
+
+		test('STUDENT deve retornar post PUBLISHED (200)', async () => {
+			const response = await request(app)
+				.get('/posts/880e8400-e29b-41d4-a716-446655440001')
+				.set('Authorization', `Bearer ${studentToken}`);
+
+			expect(response.status).toBe(200);
+			expect(response.body.status).toBe('PUBLISHED');
+		});
+
+		test('STUDENT deve retornar 403 para post DRAFT', async () => {
+			const response = await request(app)
+				.get('/posts/880e8400-e29b-41d4-a716-446655440005')
+				.set('Authorization', `Bearer ${studentToken}`);
+
+			expect(response.status).toBe(403);
+			expect(response.body).toHaveProperty('error');
+		});
+
+		test('TEACHER deve retornar post DRAFT (200)', async () => {
+			const response = await request(app)
+				.get('/posts/880e8400-e29b-41d4-a716-446655440005')
+				.set('Authorization', `Bearer ${teacherToken}`);
+
+			expect(response.status).toBe(200);
+			expect(response.body.status).toBe('DRAFT');
+		});
+
+		test('deve retornar 404 com id inexistente', async () => {
 			const response = await request(app)
 				.get('/posts/00000000-0000-0000-0000-000000000000')
 				.set('Authorization', `Bearer ${teacherToken}`);
