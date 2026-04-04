@@ -133,20 +133,20 @@ describe('PostService - CRUD with Role-Based Visibility', () => {
 	});
 
 	describe('getPostById()', () => {
-		test('should return post with includes and without FK fields', async () => {
-			const mockPost = {
-				id: '1',
-				title: 'Test Post',
-				status: 'PUBLISHED',
-				author_id: 'u1',
-				discipline_id: 'd1',
-				author: { id: 'u1', name: 'Teacher', role: 'TEACHER' },
-				discipline: { id: 'd1', label: 'Math' }
-			};
+		const makeMockPost = (status) => ({
+			id: '1',
+			title: 'Test Post',
+			status,
+			author_id: 'u1',
+			discipline_id: 'd1',
+			author: { id: 'u1', name: 'Teacher', role: 'TEACHER' },
+			discipline: { id: 'd1', label: 'Math' }
+		});
 
-			mockPostRepository.findById.mockResolvedValue(mockPost);
+		test('TEACHER should access PUBLISHED post', async () => {
+			mockPostRepository.findById.mockResolvedValue(makeMockPost('PUBLISHED'));
 
-			const result = await postService.getPostById('1');
+			const result = await postService.getPostById('1', 'TEACHER');
 
 			expect(mockPostRepository.findById).toHaveBeenCalledWith('1');
 			expect(result).not.toHaveProperty('author_id');
@@ -155,10 +155,66 @@ describe('PostService - CRUD with Role-Based Visibility', () => {
 			expect(result.discipline).toEqual({ id: 'd1', label: 'Math' });
 		});
 
+		test('TEACHER should access DRAFT post', async () => {
+			mockPostRepository.findById.mockResolvedValue(makeMockPost('DRAFT'));
+
+			const result = await postService.getPostById('1', 'TEACHER');
+
+			expect(result.status).toBe('DRAFT');
+		});
+
+		test('TEACHER should access ARCHIVED post', async () => {
+			mockPostRepository.findById.mockResolvedValue(makeMockPost('ARCHIVED'));
+
+			const result = await postService.getPostById('1', 'TEACHER');
+
+			expect(result.status).toBe('ARCHIVED');
+		});
+
+		test('STUDENT should access PUBLISHED post', async () => {
+			mockPostRepository.findById.mockResolvedValue(makeMockPost('PUBLISHED'));
+
+			const result = await postService.getPostById('1', 'STUDENT');
+
+			expect(result.status).toBe('PUBLISHED');
+		});
+
+		test('STUDENT should be denied access to DRAFT post', async () => {
+			mockPostRepository.findById.mockResolvedValue(makeMockPost('DRAFT'));
+
+			await expect(postService.getPostById('1', 'STUDENT')).rejects.toThrow(
+				'Acesso negado'
+			);
+		});
+
+		test('STUDENT should be denied access to ARCHIVED post', async () => {
+			mockPostRepository.findById.mockResolvedValue(makeMockPost('ARCHIVED'));
+
+			await expect(postService.getPostById('1', 'STUDENT')).rejects.toThrow(
+				'Acesso negado'
+			);
+		});
+
+		test('unauthenticated (null) should access PUBLISHED post', async () => {
+			mockPostRepository.findById.mockResolvedValue(makeMockPost('PUBLISHED'));
+
+			const result = await postService.getPostById('1', null);
+
+			expect(result.status).toBe('PUBLISHED');
+		});
+
+		test('unauthenticated (null) should be denied access to DRAFT post', async () => {
+			mockPostRepository.findById.mockResolvedValue(makeMockPost('DRAFT'));
+
+			await expect(postService.getPostById('1', null)).rejects.toThrow(
+				'Acesso negado'
+			);
+		});
+
 		test('should throw error when post not found', async () => {
 			mockPostRepository.findById.mockResolvedValue(null);
 
-			await expect(postService.getPostById('invalid-id')).rejects.toThrow(
+			await expect(postService.getPostById('invalid-id', 'TEACHER')).rejects.toThrow(
 				'Post não encontrado'
 			);
 		});

@@ -54,13 +54,19 @@ class PostService {
 	/**
 	 * Busca post por ID
 	 * @param {string} id - UUID do post
+	 * @param {string|null} userRole - 'TEACHER' | 'STUDENT' | null
 	 * @returns {Promise<Object>} Post com includes
 	 */
-	async getPostById(id) {
+	async getPostById(id, userRole = null) {
 		const post = await this.postRepository.findById(id);
 
 		if (!post) {
 			throw new Error('Post não encontrado');
+		}
+
+		// Visibilidade: não-TEACHER só vê PUBLISHED
+		if (userRole !== 'TEACHER' && post.status !== 'PUBLISHED') {
+			throw new Error('Acesso negado');
 		}
 
 		return serializePost(post);
@@ -93,7 +99,7 @@ class PostService {
 		});
 
 		// Retornar com includes
-		return await this.getPostById(post.id);
+		return await this.getPostById(post.id, 'TEACHER');
 	}
 
 	/**
@@ -123,7 +129,7 @@ class PostService {
 
 		await this.postRepository.update(id, fullData);
 
-		return await this.getPostById(id);
+		return await this.getPostById(id, 'TEACHER');
 	}
 
 	/**
@@ -148,7 +154,7 @@ class PostService {
 		await this.postRepository.update(id, data);
 
 		// Retornar com includes
-		return await this.getPostById(id);
+		return await this.getPostById(id, 'TEACHER');
 	}
 
 	/**
