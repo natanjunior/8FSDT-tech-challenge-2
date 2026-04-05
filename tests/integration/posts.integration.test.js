@@ -355,4 +355,109 @@ describe('Posts Integration Tests', () => {
 			});
 		});
 	});
+
+	describe('GET /posts — sort', () => {
+		test('sort=-published_at retorna posts ordenados por published_at DESC', async () => {
+			const response = await request(app).get('/posts?sort=-published_at');
+
+			expect(response.status).toBe(200);
+			expect(response.body).toHaveProperty('data');
+			const dates = response.body.data
+				.map((p) => p.published_at)
+				.filter(Boolean);
+			for (let i = 1; i < dates.length; i++) {
+				expect(new Date(dates[i - 1]).getTime()).toBeGreaterThanOrEqual(
+					new Date(dates[i]).getTime()
+				);
+			}
+		});
+
+		test('sort=title retorna posts ordenados por título ASC', async () => {
+			const response = await request(app)
+				.get('/posts?sort=title')
+				.set('Authorization', `Bearer ${teacherToken}`);
+
+			expect(response.status).toBe(200);
+			const titles = response.body.data.map((p) => p.title);
+			for (let i = 1; i < titles.length; i++) {
+				expect(titles[i - 1].localeCompare(titles[i])).toBeLessThanOrEqual(0);
+			}
+		});
+
+		test('sort campo inválido retorna 200 com ordem default', async () => {
+			const response = await request(app).get('/posts?sort=campo_invalido');
+			expect(response.status).toBe(200);
+			expect(response.body).toHaveProperty('data');
+		});
+	});
+
+	describe('GET /posts/search — discipline e status', () => {
+		let knownDisciplineId;
+
+		beforeAll(async () => {
+			// Buscar um discipline_id real da seed (endpoint requer auth)
+			const disciplinesResponse = await request(app)
+				.get('/disciplines')
+				.set('Authorization', `Bearer ${teacherToken}`);
+			knownDisciplineId = disciplinesResponse.body.data?.[0]?.id || disciplinesResponse.body[0]?.id;
+		});
+
+		test('?discipline=<uuid> retorna apenas posts da disciplina', async () => {
+			const response = await request(app)
+				.get(`/posts/search?discipline=${knownDisciplineId}`)
+				.set('Authorization', `Bearer ${teacherToken}`);
+
+			expect(response.status).toBe(200);
+			response.body.data.forEach((post) => {
+				expect(post.discipline.id).toBe(knownDisciplineId);
+			});
+		});
+
+		test('?discipline=uuid_inexistente retorna 0 resultados', async () => {
+			const response = await request(app)
+				.get('/posts/search?discipline=00000000-0000-0000-0000-000000000000')
+				.set('Authorization', `Bearer ${teacherToken}`);
+
+			expect(response.status).toBe(200);
+			expect(response.body.pagination.total).toBe(0);
+		});
+
+		test('?discipline=invalido retorna 400', async () => {
+			const response = await request(app).get('/posts/search?discipline=nao-e-uuid');
+			expect(response.status).toBe(400);
+		});
+
+		test('?status=DRAFT como TEACHER retorna rascunhos', async () => {
+			const response = await request(app)
+				.get('/posts/search?status=DRAFT')
+				.set('Authorization', `Bearer ${teacherToken}`);
+
+			expect(response.status).toBe(200);
+			response.body.data.forEach((post) => {
+				expect(post.status).toBe('DRAFT');
+			});
+		});
+
+		test('?status=DRAFT como STUDENT retorna apenas PUBLISHED', async () => {
+			const response = await request(app)
+				.get('/posts/search?status=DRAFT')
+				.set('Authorization', `Bearer ${studentToken}`);
+
+			expect(response.status).toBe(200);
+			response.body.data.forEach((post) => {
+				expect(post.status).toBe('PUBLISHED');
+			});
+		});
+
+		test('?status=draft (minúsculo) é aceito e normalizado', async () => {
+			const response = await request(app)
+				.get('/posts/search?status=draft')
+				.set('Authorization', `Bearer ${teacherToken}`);
+
+			expect(response.status).toBe(200);
+			response.body.data.forEach((post) => {
+				expect(post.status).toBe('DRAFT');
+			});
+		});
+	});
 });
