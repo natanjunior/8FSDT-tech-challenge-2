@@ -18,7 +18,7 @@ const CommentService = require('./services/comment.service');
 // Controllers (classes)
 const AuthController = require('./controllers/auth.controller');
 const PostController = require('./controllers/post.controller');
-const PostReadController = require('./controllers/postRead.controller');
+const ReadController = require('./controllers/read.controller');
 const DisciplineController = require('./controllers/discipline.controller');
 const CommentController = require('./controllers/comment.controller');
 
@@ -45,7 +45,7 @@ const commentService = new CommentService(commentRepository, postRepository);
 // Controllers (injetando services)
 const authController = new AuthController(authService);
 const postController = new PostController(postService);
-const postReadController = new PostReadController(postReadService);
+const readController = new ReadController(postReadService);
 const disciplineController = new DisciplineController(disciplineService);
 const commentController = new CommentController(commentService);
 
@@ -56,7 +56,7 @@ module.exports = {
 	// Controllers
 	authController,
 	postController,
-	postReadController,
+	readController,
 	disciplineController,
 	commentController,
 	// Middleware

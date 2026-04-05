@@ -14,7 +14,6 @@ const {
 	listPostsValidator,
 	searchPostsValidator
 } = require('../validators/post.validator');
-const postReadRoutes = require('./postRead.routes');
 
 /**
  * Middleware de autenticação opcional
@@ -411,8 +410,5 @@ router.delete(
 	validate,
 	(req, res) => postController.deletePost(req, res)
 );
-
-// Montar sub-rotas de post reads
-router.use('/', postReadRoutes);
 
 module.exports = router;
