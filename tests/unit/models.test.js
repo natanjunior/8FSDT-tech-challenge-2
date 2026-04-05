@@ -125,23 +125,22 @@ describe('Models Definition - v11 (Passwordless)', () => {
 	});
 });
 
-describe('Model Count - v12', () => {
-	test('should have exactly 5 models (NO Comment, NO PostStatus)', () => {
+describe('Model Count - v13', () => {
+	test('should have exactly 6 models (with Comment)', () => {
 		const models = require('../../src/models');
 		const modelNames = Object.keys(models).filter(
 			key => key !== 'sequelize' && key !== 'Sequelize'
 		);
 
-		// v12: 5 models (User, Post, PostRead, UserSession, Discipline)
-		// SEM Comment (desde v11)!
+		// v13: 6 models (User, Post, PostRead, UserSession, Discipline, Comment)
 		// SEM PostStatus (v12 - status é ENUM direto no Post)!
-		expect(modelNames).toHaveLength(5);
+		expect(modelNames).toHaveLength(6);
 		expect(modelNames).toContain('User');
 		expect(modelNames).toContain('Post');
 		expect(modelNames).toContain('PostRead');
 		expect(modelNames).toContain('UserSession');
 		expect(modelNames).toContain('Discipline');
+		expect(modelNames).toContain('Comment');
 		expect(modelNames).not.toContain('PostStatus');
-		expect(modelNames).not.toContain('Comment');
 	});
 });
