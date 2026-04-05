@@ -16,11 +16,10 @@ class ReadController {
 
       const result = await this.postReadService.markAsRead(post_id, userId);
 
-      // markAsRead retorna registro existente (200) ou novo (201)
-      // Detectar se foi criado agora: comparar read_at com agora (margem de 2s)
-      const isNew = Date.now() - new Date(result.read_at).getTime() < 2000;
+      // markAsRead sinaliza se foi criado agora (created: true) ou já existia (created: false)
+      const { created, ...body } = result;
 
-      return res.status(isNew ? 201 : 200).json(result);
+      return res.status(created ? 201 : 200).json(body);
     } catch (error) {
       if (error.message === 'Post não encontrado') {
         return res.status(404).json({ error: error.message });

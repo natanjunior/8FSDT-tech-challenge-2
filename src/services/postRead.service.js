@@ -24,6 +24,7 @@ class PostReadService {
     // Se já existe, retornar registro existente (idempotente)
     if (existingRead) {
       return {
+        created: false,
         id: existingRead.id,
         post_id: existingRead.post_id,
         user_id: existingRead.user_id,
@@ -39,6 +40,7 @@ class PostReadService {
     });
 
     return {
+      created: true,
       id: newRead.id,
       post_id: newRead.post_id,
       user_id: newRead.user_id,
