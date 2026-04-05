@@ -49,7 +49,7 @@ describe('PostService - CRUD with Role-Based Visibility', () => {
 
 			expect(mockPostRepository.findAllPaginated).toHaveBeenCalledWith(
 				{}, // No status filter for TEACHER
-				{ limit: 20, offset: 0 }
+				expect.objectContaining({ limit: 20, offset: 0 })
 			);
 			expect(result.data).toEqual(serializedPosts);
 			// Verify FK fields are stripped
@@ -76,7 +76,7 @@ describe('PostService - CRUD with Role-Based Visibility', () => {
 
 			expect(mockPostRepository.findAllPaginated).toHaveBeenCalledWith(
 				{ status: 'PUBLISHED' },
-				{ limit: 20, offset: 0 }
+				expect.objectContaining({ limit: 20, offset: 0 })
 			);
 			expect(result.data).toEqual([serializedPosts[0]]);
 		});
@@ -92,7 +92,7 @@ describe('PostService - CRUD with Role-Based Visibility', () => {
 
 			expect(mockPostRepository.findAllPaginated).toHaveBeenCalledWith(
 				{ status: 'PUBLISHED' },
-				{ limit: 20, offset: 0 }
+				expect.objectContaining({ limit: 20, offset: 0 })
 			);
 			expect(result.data).toEqual([serializedPosts[0]]);
 		});
@@ -107,7 +107,7 @@ describe('PostService - CRUD with Role-Based Visibility', () => {
 
 			expect(mockPostRepository.findAllPaginated).toHaveBeenCalledWith(
 				{},
-				{ limit: 20, offset: 20 } // (page 2 - 1) * 20
+				expect.objectContaining({ limit: 20, offset: 20 }) // (page 2 - 1) * 20
 			);
 			expect(result.pagination).toEqual({
 				page: 2,
@@ -127,7 +127,7 @@ describe('PostService - CRUD with Role-Based Visibility', () => {
 
 			expect(mockPostRepository.findAllPaginated).toHaveBeenCalledWith(
 				{},
-				{ limit: 20, offset: 0 }
+				expect.objectContaining({ limit: 20, offset: 0 })
 			);
 		});
 	});
@@ -463,7 +463,7 @@ describe('PostService - CRUD with Role-Based Visibility', () => {
 					]
 				}),
 				null, // no author filter
-				{ limit: 20, offset: 0 }
+				expect.objectContaining({ limit: 20, offset: 0 })
 			);
 		});
 
@@ -477,7 +477,7 @@ describe('PostService - CRUD with Role-Based Visibility', () => {
 					title: { [Op.iLike]: '%intro%' }
 				}),
 				null,
-				{ limit: 20, offset: 0 }
+				expect.objectContaining({ limit: 20, offset: 0 })
 			);
 		});
 
@@ -489,7 +489,7 @@ describe('PostService - CRUD with Role-Based Visibility', () => {
 			expect(mockPostRepository.search).toHaveBeenCalledWith(
 				expect.any(Object),
 				{ name: { [Op.iLike]: '%silva%' } }, // author filter
-				{ limit: 20, offset: 0 }
+				expect.objectContaining({ limit: 20, offset: 0 })
 			);
 		});
 
@@ -503,8 +503,133 @@ describe('PostService - CRUD with Role-Based Visibility', () => {
 					status: 'PUBLISHED'
 				}),
 				null,
-				{ limit: 20, offset: 0 }
+				expect.objectContaining({ limit: 20, offset: 0 })
 			);
 		});
+	});
+});
+
+describe('listPosts() — sort', () => {
+	let postService;
+	let mockPostRepository;
+
+	beforeEach(() => {
+		mockPostRepository = {
+			findAllPaginated: jest.fn(),
+			findById: jest.fn(),
+			create: jest.fn(),
+			update: jest.fn(),
+			delete: jest.fn(),
+			search: jest.fn()
+		};
+		postService = new PostService(mockPostRepository);
+	});
+
+	afterEach(() => {
+		jest.clearAllMocks();
+	});
+
+	test('repassa sort para o repository', async () => {
+		mockPostRepository.findAllPaginated.mockResolvedValue({ count: 0, rows: [] });
+
+		await postService.listPosts({ page: 1, limit: 10, sort: '-published_at' }, 'TEACHER');
+
+		expect(mockPostRepository.findAllPaginated).toHaveBeenCalledWith(
+			expect.any(Object),
+			expect.objectContaining({ sort: '-published_at' })
+		);
+	});
+
+	test('sort undefined é repassado como undefined', async () => {
+		mockPostRepository.findAllPaginated.mockResolvedValue({ count: 0, rows: [] });
+
+		await postService.listPosts({ page: 1, limit: 10 }, 'TEACHER');
+
+		expect(mockPostRepository.findAllPaginated).toHaveBeenCalledWith(
+			expect.any(Object),
+			expect.objectContaining({ sort: undefined })
+		);
+	});
+});
+
+describe('searchPosts() — discipline, status, sort', () => {
+	let postService;
+	let mockPostRepository;
+
+	beforeEach(() => {
+		mockPostRepository = {
+			findAllPaginated: jest.fn(),
+			findById: jest.fn(),
+			create: jest.fn(),
+			update: jest.fn(),
+			delete: jest.fn(),
+			search: jest.fn()
+		};
+		postService = new PostService(mockPostRepository);
+	});
+
+	afterEach(() => {
+		jest.clearAllMocks();
+	});
+
+	test('discipline_id é adicionado ao where quando fornecido', async () => {
+		mockPostRepository.search.mockResolvedValue({ count: 0, rows: [] });
+		const uuid = '550e8400-e29b-41d4-a716-446655440001';
+
+		await postService.searchPosts({ query: 'algo', discipline: uuid }, 'TEACHER');
+
+		expect(mockPostRepository.search).toHaveBeenCalledWith(
+			expect.objectContaining({ discipline_id: uuid }),
+			null,
+			expect.any(Object)
+		);
+	});
+
+	test('status é adicionado ao where para TEACHER', async () => {
+		mockPostRepository.search.mockResolvedValue({ count: 0, rows: [] });
+
+		await postService.searchPosts({ query: 'algo', status: 'DRAFT' }, 'TEACHER');
+
+		expect(mockPostRepository.search).toHaveBeenCalledWith(
+			expect.objectContaining({ status: 'DRAFT' }),
+			null,
+			expect.any(Object)
+		);
+	});
+
+	test('status DRAFT é ignorado para STUDENT — força PUBLISHED', async () => {
+		mockPostRepository.search.mockResolvedValue({ count: 0, rows: [] });
+
+		await postService.searchPosts({ query: 'algo', status: 'DRAFT' }, 'STUDENT');
+
+		expect(mockPostRepository.search).toHaveBeenCalledWith(
+			expect.objectContaining({ status: 'PUBLISHED' }),
+			null,
+			expect.any(Object)
+		);
+	});
+
+	test('status DRAFT é ignorado para null — força PUBLISHED', async () => {
+		mockPostRepository.search.mockResolvedValue({ count: 0, rows: [] });
+
+		await postService.searchPosts({ query: 'algo', status: 'DRAFT' }, null);
+
+		expect(mockPostRepository.search).toHaveBeenCalledWith(
+			expect.objectContaining({ status: 'PUBLISHED' }),
+			null,
+			expect.any(Object)
+		);
+	});
+
+	test('sort é repassado ao repository', async () => {
+		mockPostRepository.search.mockResolvedValue({ count: 0, rows: [] });
+
+		await postService.searchPosts({ query: 'algo', sort: '-published_at' }, 'TEACHER');
+
+		expect(mockPostRepository.search).toHaveBeenCalledWith(
+			expect.any(Object),
+			null,
+			expect.objectContaining({ sort: '-published_at' })
+		);
 	});
 });
