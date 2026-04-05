@@ -62,7 +62,7 @@ class CommentRepository {
       author_name: plain.author_name,
       is_anonymous: plain.user_id === null,
       can_delete: this.canDelete(plain, userRole, userId, anonymousId),
-      created_at: plain.created_at
+      created_at: plain.createdAt || plain.created_at
     };
   }
 
