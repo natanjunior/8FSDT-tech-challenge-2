@@ -460,4 +460,45 @@ describe('Posts Integration Tests', () => {
 			});
 		});
 	});
+
+	describe('GET /posts — counts no shape', () => {
+		test('cada post deve conter comments_count e reads_count como números', async () => {
+			const response = await request(app).get('/posts');
+
+			expect(response.status).toBe(200);
+			response.body.data.forEach((post) => {
+				expect(post).toHaveProperty('comments_count');
+				expect(post).toHaveProperty('reads_count');
+				expect(typeof post.comments_count).toBe('number');
+				expect(typeof post.reads_count).toBe('number');
+				expect(post.comments_count).toBeGreaterThanOrEqual(0);
+				expect(post.reads_count).toBeGreaterThanOrEqual(0);
+			});
+		});
+
+		test('GET /posts/:id deve conter comments_count e reads_count', async () => {
+			const listResponse = await request(app).get('/posts');
+			const postId = listResponse.body.data[0]?.id;
+
+			const response = await request(app).get(`/posts/${postId}`);
+
+			expect(response.status).toBe(200);
+			expect(response.body).toHaveProperty('comments_count');
+			expect(response.body).toHaveProperty('reads_count');
+			expect(typeof response.body.comments_count).toBe('number');
+			expect(typeof response.body.reads_count).toBe('number');
+		});
+
+		test('GET /posts/search deve conter comments_count e reads_count', async () => {
+			const response = await request(app).get('/posts/search');
+
+			expect(response.status).toBe(200);
+			response.body.data.forEach((post) => {
+				expect(post).toHaveProperty('comments_count');
+				expect(post).toHaveProperty('reads_count');
+				expect(typeof post.comments_count).toBe('number');
+				expect(typeof post.reads_count).toBe('number');
+			});
+		});
+	});
 });
