@@ -67,6 +67,39 @@ class PostReadService {
       read_at: null
     };
   }
+
+  /**
+   * Busca leituras do usuário autenticado com paginação e ordenação.
+   *
+   * @param {string} userId
+   * @param {Object} filters  { postId?, page, limit, sort }
+   * @returns {Object} { data, pagination }
+   */
+  async searchReads(userId, filters = {}) {
+    const page = parseInt(filters.page) || 1;
+    const limit = Math.min(parseInt(filters.limit) || 20, 100);
+    const sort = filters.sort;
+    const postId = filters.postId;
+
+    const { count, rows } = await this.postReadRepository.findPaginated(userId, {
+      postId,
+      page,
+      limit,
+      sort
+    });
+
+    const totalPages = Math.ceil(count / limit);
+
+    return {
+      data: rows.map((r) => ({
+        id: r.id,
+        post_id: r.post_id,
+        user_id: r.user_id,
+        read_at: r.read_at
+      })),
+      pagination: { page, limit, total: count, totalPages }
+    };
+  }
 }
 
 module.exports = PostReadService;
