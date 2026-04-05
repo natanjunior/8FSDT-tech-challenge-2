@@ -15,10 +15,10 @@ class PostController {
 	 */
 	async listPosts(req, res) {
 		try {
-			const { page, limit } = req.query;
+			const { page, limit, sort } = req.query;
 			const userRole = req.user?.role || null;
 
-			const result = await this.postService.listPosts({ page, limit }, userRole);
+			const result = await this.postService.listPosts({ page, limit, sort }, userRole);
 
 			return res.status(200).json(result);
 		} catch (error) {
@@ -142,11 +142,11 @@ class PostController {
 	 */
 	async searchPosts(req, res) {
 		try {
-			const { query, title, author, page, limit } = req.query;
+			const { query, title, author, discipline, status, page, limit, sort } = req.query;
 			const userRole = req.user?.role || null;
 
 			const result = await this.postService.searchPosts(
-				{ query, title, author, page, limit },
+				{ query, title, author, discipline, status, page, limit, sort },
 				userRole
 			);
 
