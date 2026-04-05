@@ -35,8 +35,8 @@ describe('PostService - CRUD with Role-Based Visibility', () => {
 		];
 
 		const serializedPosts = [
-			{ id: '1', title: 'Post 1', status: 'PUBLISHED', author: { id: 'u1', name: 'Teacher', role: 'TEACHER' }, discipline: { id: 'd1', label: 'Math' } },
-			{ id: '2', title: 'Post 2', status: 'DRAFT', author: { id: 'u1', name: 'Teacher', role: 'TEACHER' }, discipline: { id: 'd1', label: 'Math' } }
+			{ id: '1', title: 'Post 1', status: 'PUBLISHED', author: { id: 'u1', name: 'Teacher', role: 'TEACHER' }, discipline: { id: 'd1', label: 'Math' }, comments_count: 0, reads_count: 0 },
+			{ id: '2', title: 'Post 2', status: 'DRAFT', author: { id: 'u1', name: 'Teacher', role: 'TEACHER' }, discipline: { id: 'd1', label: 'Math' }, comments_count: 0, reads_count: 0 }
 		];
 
 		test('should return all posts for TEACHER (no status filter)', async () => {

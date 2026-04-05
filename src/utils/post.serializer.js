@@ -15,7 +15,11 @@ function serializePost(post) {
 
 	const { author_id, discipline_id, ...rest } = plain;
 
-	return rest;
+	return {
+		...rest,
+		comments_count: parseInt(rest.comments_count) || 0,
+		reads_count: parseInt(rest.reads_count) || 0
+	};
 }
 
 /**

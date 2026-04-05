@@ -1,7 +1,23 @@
 'use strict';
 
-const { Post, User, Discipline } = require('../models');
+const { Post, User, Discipline, Sequelize } = require('../models');
 const { parseFhirSort } = require('../utils/sort');
+
+// Subqueries de contagem — adicionadas como atributos virtuais em toda query de post
+const countAttributes = [
+  [
+    Sequelize.literal(
+      '(SELECT COUNT(*) FROM comments WHERE comments.post_id = "Post"."id")'
+    ),
+    'comments_count'
+  ],
+  [
+    Sequelize.literal(
+      '(SELECT COUNT(*) FROM post_reads WHERE post_reads.post_id = "Post"."id")'
+    ),
+    'reads_count'
+  ]
+];
 
 const defaultIncludes = [
   {
@@ -43,6 +59,7 @@ class PostRepository {
 
     const { count, rows } = await Post.findAndCountAll({
       where,
+      attributes: { include: countAttributes },
       include: defaultIncludes,
       order,
       limit,
@@ -55,6 +72,7 @@ class PostRepository {
 
   async findById(id) {
     return Post.findByPk(id, {
+      attributes: { include: countAttributes },
       include: defaultIncludes
     });
   }
@@ -105,6 +123,7 @@ class PostRepository {
 
     const { count, rows } = await Post.findAndCountAll({
       where,
+      attributes: { include: countAttributes },
       include,
       order,
       limit,
