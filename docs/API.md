@@ -47,7 +47,8 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIs...
 | Role | Permissoes |
 |------|-----------|
 | TEACHER | CRUD completo de posts, listar disciplinas, marcar leitura |
-| STUDENT | Listar posts PUBLISHED, buscar posts, listar disciplinas, marcar leitura |
+| STUDENT | Listar posts PUBLISHED, buscar posts, listar disciplinas, marcar leitura, comentar |
+| Não autenticado | Listar posts PUBLISHED, buscar posts, comentar (anônimo via X-Anonymous-Id) |
 
 ## Endpoints
 
@@ -64,18 +65,28 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIs...
 |--------|------|-----------|------|------|
 | GET | `/posts` | Listar posts | Opcional | TEACHER ve todos, demais ve PUBLISHED |
 | GET | `/posts/search` | Buscar posts | Opcional | Mesmas regras de listagem |
-| GET | `/posts/:id` | Buscar post por ID | Sim | Todos |
+| GET | `/posts/:id` | Buscar post por ID | Opcional | TEACHER ve todos, demais ve PUBLISHED |
 | POST | `/posts` | Criar post | Sim | TEACHER |
 | PUT | `/posts/:id` | Substituir post (completo) | Sim | TEACHER |
 | PATCH | `/posts/:id` | Atualizar post (parcial) | Sim | TEACHER |
 | DELETE | `/posts/:id` | Deletar post (hard delete) | Sim | TEACHER |
 
-### Post Reads
+### Reads
 
 | Metodo | Rota | Descricao | Auth |
 |--------|------|-----------|------|
-| POST | `/posts/:id/read` | Marcar post como lido (idempotente) | Sim |
-| GET | `/posts/:id/read` | Verificar se post foi lido | Sim |
+| POST | `/reads` | Marcar post como lido (idempotente) | Sim |
+| GET | `/reads/search` | Listar leituras do usuario | Sim |
+
+> **Breaking change:** As rotas `POST/GET /posts/:id/read` foram removidas.
+
+### Comments
+
+| Metodo | Rota | Descricao | Auth |
+|--------|------|-----------|------|
+| GET | `/comments/search` | Buscar comentarios com paginacao e ordenacao FHIR | Opcional |
+| POST | `/comments` | Criar comentario (autenticado ou anonimo) | Opcional |
+| DELETE | `/comments/:id` | Deletar comentario (dono ou TEACHER) | Opcional |
 
 ### Disciplines
 
@@ -117,6 +128,9 @@ curl http://localhost:3030/posts \
 
 # Com paginacao
 curl "http://localhost:3030/posts?page=1&limit=10"
+
+# Com ordenacao FHIR
+curl "http://localhost:3030/posts?sort=-published_at,title"
 ```
 
 ### Buscar Posts
@@ -130,6 +144,13 @@ curl "http://localhost:3030/posts/search?title=introducao"
 
 # Busca por autor
 curl "http://localhost:3030/posts/search?author=professor"
+
+# Filtrar por disciplina
+curl "http://localhost:3030/posts/search?discipline=660e8400-e29b-41d4-a716-446655440001"
+
+# Filtrar por status (apenas TEACHER)
+curl "http://localhost:3030/posts/search?status=DRAFT" \
+  -H "Authorization: Bearer <token>"
 ```
 
 ### Substituir Post - PUT (TEACHER)
@@ -166,23 +187,56 @@ curl -X DELETE http://localhost:3030/posts/:id \
 ### Marcar Post como Lido
 
 ```bash
-curl -X POST http://localhost:3030/posts/:id/read \
-  -H "Authorization: Bearer <token>"
+curl -X POST http://localhost:3030/reads \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <token>" \
+  -d '{"post_id": "uuid-do-post"}'
 ```
 
-### Verificar Leitura
+### Buscar Leituras
 
 ```bash
-curl http://localhost:3030/posts/:id/read \
+# Todas as leituras do usuario
+curl http://localhost:3030/reads/search \
+  -H "Authorization: Bearer <token>"
+
+# Verificar se leu um post especifico
+curl "http://localhost:3030/reads/search?post_id=uuid-do-post" \
   -H "Authorization: Bearer <token>"
 ```
 
-**Resposta:**
-```json
-{
-  "read": true,
-  "read_at": "2024-01-15T10:30:00.000Z"
-}
+### Buscar Comentarios
+
+```bash
+# Comentarios de um post
+curl "http://localhost:3030/comments/search?post_id=uuid-do-post"
+
+# Com ordenacao
+curl "http://localhost:3030/comments/search?post_id=uuid-do-post&sort=-mine,-created_at" \
+  -H "X-Anonymous-Id: uuid-do-visitante"
+```
+
+### Criar Comentario
+
+```bash
+# Autenticado
+curl -X POST http://localhost:3030/comments \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <token>" \
+  -d '{"post_id": "uuid-do-post", "content": "Otimo post!"}'
+
+# Anonimo
+curl -X POST http://localhost:3030/comments \
+  -H "Content-Type: application/json" \
+  -H "X-Anonymous-Id: uuid-do-visitante" \
+  -d '{"post_id": "uuid-do-post", "content": "Otimo post!", "author_name": "Visitante"}'
+```
+
+### Deletar Comentario
+
+```bash
+curl -X DELETE http://localhost:3030/comments/:id \
+  -H "Authorization: Bearer <token>"
 ```
 
 ### Listar Disciplinas
