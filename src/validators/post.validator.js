@@ -15,7 +15,6 @@ const createPostValidator = [
 		.withMessage('Título deve ter entre 5 e 255 caracteres'),
 
 	body('content')
-		.trim()
 		.notEmpty()
 		.withMessage('Conteúdo é obrigatório')
 		.isLength({ min: 10 })
@@ -48,7 +47,6 @@ const replacePostValidator = [
 		.withMessage('Título deve ter entre 5 e 255 caracteres'),
 
 	body('content')
-		.trim()
 		.notEmpty()
 		.withMessage('Conteúdo é obrigatório')
 		.isLength({ min: 10 })
@@ -82,7 +80,6 @@ const updatePostValidator = [
 
 	body('content')
 		.optional()
-		.trim()
 		.isLength({ min: 10 })
 		.withMessage('Conteúdo deve ter no mínimo 10 caracteres'),
 
