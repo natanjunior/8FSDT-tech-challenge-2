@@ -15,10 +15,10 @@ class PostController {
 	 */
 	async listPosts(req, res) {
 		try {
-			const { page, limit } = req.query;
+			const { page, limit, sort } = req.query;
 			const userRole = req.user?.role || null;
 
-			const result = await this.postService.listPosts({ page, limit }, userRole);
+			const result = await this.postService.listPosts({ page, limit, sort }, userRole);
 
 			return res.status(200).json(result);
 		} catch (error) {
@@ -29,18 +29,22 @@ class PostController {
 	/**
 	 * Busca post por ID
 	 * GET /posts/:id
-	 * Header: Authorization: Bearer <token> (obrigatório)
+	 * Header: Authorization: Bearer <token> (opcional)
 	 */
 	async getPostById(req, res) {
 		try {
 			const { id } = req.params;
+			const userRole = req.user?.role || null;
 
-			const post = await this.postService.getPostById(id);
+			const post = await this.postService.getPostById(id, userRole);
 
 			return res.status(200).json(post);
 		} catch (error) {
 			if (error.message === 'Post não encontrado') {
 				return res.status(404).json({ error: error.message });
+			}
+			if (error.message === 'Acesso negado') {
+				return res.status(403).json({ error: error.message });
 			}
 			return res.status(500).json({ error: error.message });
 		}
@@ -138,11 +142,11 @@ class PostController {
 	 */
 	async searchPosts(req, res) {
 		try {
-			const { query, title, author, page, limit } = req.query;
+			const { query, title, author, discipline, status, page, limit, sort } = req.query;
 			const userRole = req.user?.role || null;
 
 			const result = await this.postService.searchPosts(
-				{ query, title, author, page, limit },
+				{ query, title, author, discipline, status, page, limit, sort },
 				userRole
 			);
 

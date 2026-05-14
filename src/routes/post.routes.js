@@ -14,7 +14,6 @@ const {
 	listPostsValidator,
 	searchPostsValidator
 } = require('../validators/post.validator');
-const postReadRoutes = require('./postRead.routes');
 
 /**
  * Middleware de autenticação opcional
@@ -139,10 +138,15 @@ router.get('/search', optionalAuth, searchPostsValidator, validate, (req, res) =
  * /posts/{id}:
  *   get:
  *     summary: Buscar post por ID
- *     description: Retorna um post específico pelo seu ID.
+ *     description: |
+ *       Retorna um post específico pelo seu ID.
+ *       Respeita as mesmas regras de visibilidade que a listagem.
+ *       - TEACHER: vê posts de qualquer status
+ *       - STUDENT ou não autenticado: vê apenas posts PUBLISHED
  *     tags: [Posts]
  *     security:
  *       - bearerAuth: []
+ *       - {}
  *     parameters:
  *       - in: path
  *         name: id
@@ -164,14 +168,14 @@ router.get('/search', optionalAuth, searchPostsValidator, validate, (req, res) =
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Error'
- *       401:
- *         description: Token não fornecido ou inválido
+ *       403:
+ *         description: Acesso negado (post não é PUBLISHED e usuário não é TEACHER)
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.get('/:id', authenticate, getPostValidator, validate, (req, res) =>
+router.get('/:id', optionalAuth, getPostValidator, validate, (req, res) =>
 	postController.getPostById(req, res)
 );
 
@@ -406,8 +410,5 @@ router.delete(
 	validate,
 	(req, res) => postController.deletePost(req, res)
 );
-
-// Montar sub-rotas de post reads
-router.use('/', postReadRoutes);
 
 module.exports = router;

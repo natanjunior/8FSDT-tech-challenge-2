@@ -13,9 +13,15 @@ function serializePost(post) {
 
 	const plain = typeof post.toJSON === 'function' ? post.toJSON() : { ...post };
 
-	const { author_id, discipline_id, ...rest } = plain;
+	const { author_id, discipline_id, createdAt, updatedAt, ...rest } = plain;
 
-	return rest;
+	return {
+		...rest,
+		created_at: createdAt || rest.created_at,
+		updated_at: updatedAt || rest.updated_at,
+		comments_count: parseInt(rest.comments_count) || 0,
+		reads_count: parseInt(rest.reads_count) || 0
+	};
 }
 
 /**

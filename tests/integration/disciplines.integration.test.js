@@ -26,7 +26,7 @@ describe('Disciplines Integration Tests', () => {
 			response.body.forEach((discipline) => {
 				expect(discipline).toHaveProperty('id');
 				expect(discipline).toHaveProperty('label');
-				expect(discipline).toHaveProperty('createdAt');
+				expect(discipline).toHaveProperty('created_at');
 			});
 
 			// Verificar ordenação (alfabética)

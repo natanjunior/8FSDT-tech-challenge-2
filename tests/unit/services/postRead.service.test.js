@@ -55,6 +55,7 @@ describe('PostReadService - Post Reads', () => {
 				})
 			);
 			expect(result).toEqual({
+				created: true,
 				id: mockNewRead.id,
 				post_id: mockNewRead.post_id,
 				user_id: mockNewRead.user_id,
@@ -80,6 +81,7 @@ describe('PostReadService - Post Reads', () => {
 			expect(mockPostReadRepository.findByPostAndUser).toHaveBeenCalledWith(postId, userId);
 			expect(mockPostReadRepository.create).not.toHaveBeenCalled(); // Não deve criar novo
 			expect(result).toEqual({
+				created: false,
 				id: mockExistingRead.id,
 				post_id: mockExistingRead.post_id,
 				user_id: mockExistingRead.user_id,

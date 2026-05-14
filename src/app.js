@@ -7,6 +7,8 @@ const swaggerSpec = require('./config/swagger');
 const authRoutes = require('./routes/auth.routes');
 const postRoutes = require('./routes/post.routes');
 const disciplineRoutes = require('./routes/discipline.routes');
+const commentRoutes = require('./routes/comment.routes');
+const readRoutes = require('./routes/read.routes');
 
 const app = express();
 
@@ -18,6 +20,8 @@ app.use(express.json());
 app.use('/auth', authRoutes);
 app.use('/posts', postRoutes);
 app.use('/disciplines', disciplineRoutes);
+app.use('/comments', commentRoutes);
+app.use('/reads', readRoutes);
 
 // Swagger Documentation
 app.use(

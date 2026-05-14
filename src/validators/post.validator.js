@@ -15,7 +15,6 @@ const createPostValidator = [
 		.withMessage('Título deve ter entre 5 e 255 caracteres'),
 
 	body('content')
-		.trim()
 		.notEmpty()
 		.withMessage('Conteúdo é obrigatório')
 		.isLength({ min: 10 })
@@ -48,7 +47,6 @@ const replacePostValidator = [
 		.withMessage('Título deve ter entre 5 e 255 caracteres'),
 
 	body('content')
-		.trim()
 		.notEmpty()
 		.withMessage('Conteúdo é obrigatório')
 		.isLength({ min: 10 })
@@ -82,7 +80,6 @@ const updatePostValidator = [
 
 	body('content')
 		.optional()
-		.trim()
 		.isLength({ min: 10 })
 		.withMessage('Conteúdo deve ter no mínimo 10 caracteres'),
 
@@ -129,7 +126,13 @@ const listPostsValidator = [
 		.optional()
 		.isInt({ min: 1, max: 100 })
 		.withMessage('limit deve ser um número entre 1 e 100')
-		.toInt()
+		.toInt(),
+
+	query('sort')
+		.optional()
+		.isString()
+		.withMessage('sort deve ser uma string')
+		.trim()
 ];
 
 /**
@@ -155,6 +158,17 @@ const searchPostsValidator = [
 		.isLength({ min: 2 })
 		.withMessage('author deve ter no mínimo 2 caracteres'),
 
+	query('discipline')
+		.optional()
+		.isUUID()
+		.withMessage('discipline deve ser um UUID válido'),
+
+	query('status')
+		.optional()
+		.isIn(['DRAFT', 'PUBLISHED', 'ARCHIVED', 'draft', 'published', 'archived'])
+		.withMessage('status deve ser DRAFT, PUBLISHED ou ARCHIVED')
+		.customSanitizer((value) => value?.toUpperCase()),
+
 	query('page')
 		.optional()
 		.isInt({ min: 1 })
@@ -165,7 +179,13 @@ const searchPostsValidator = [
 		.optional()
 		.isInt({ min: 1, max: 100 })
 		.withMessage('limit deve ser um número entre 1 e 100')
-		.toInt()
+		.toInt(),
+
+	query('sort')
+		.optional()
+		.isString()
+		.withMessage('sort deve ser uma string')
+		.trim()
 ];
 
 module.exports = {

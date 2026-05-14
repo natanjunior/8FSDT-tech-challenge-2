@@ -25,42 +25,43 @@ class PostService {
 		const page = parseInt(filters.page) || 1;
 		const limit = parseInt(filters.limit) || 20;
 		const offset = (page - 1) * limit;
+		const sort = filters.sort;
 
-		// Construir WHERE clause baseado em role
 		const where = {};
-
-		// Visibilidade por role
 		if (userRole !== 'TEACHER') {
-			// STUDENT ou não autenticado: apenas PUBLISHED
 			where.status = 'PUBLISHED';
 		}
-		// TEACHER: vê todos (sem filtro)
 
-		const { count, rows } = await this.postRepository.findAllPaginated(where, { limit, offset });
+		const { count, rows } = await this.postRepository.findAllPaginated(where, {
+			limit,
+			offset,
+			sort
+		});
 
 		const totalPages = Math.ceil(count / limit);
 
 		return {
 			data: serializePosts(rows),
-			pagination: {
-				page,
-				limit,
-				total: count,
-				totalPages
-			}
+			pagination: { page, limit, total: count, totalPages }
 		};
 	}
 
 	/**
 	 * Busca post por ID
 	 * @param {string} id - UUID do post
+	 * @param {string|null} userRole - 'TEACHER' | 'STUDENT' | null
 	 * @returns {Promise<Object>} Post com includes
 	 */
-	async getPostById(id) {
+	async getPostById(id, userRole = null) {
 		const post = await this.postRepository.findById(id);
 
 		if (!post) {
 			throw new Error('Post não encontrado');
+		}
+
+		// Visibilidade: não-TEACHER só vê PUBLISHED
+		if (userRole !== 'TEACHER' && post.status !== 'PUBLISHED') {
+			throw new Error('Acesso negado');
 		}
 
 		return serializePost(post);
@@ -93,7 +94,7 @@ class PostService {
 		});
 
 		// Retornar com includes
-		return await this.getPostById(post.id);
+		return await this.getPostById(post.id, 'TEACHER');
 	}
 
 	/**
@@ -123,7 +124,7 @@ class PostService {
 
 		await this.postRepository.update(id, fullData);
 
-		return await this.getPostById(id);
+		return await this.getPostById(id, 'TEACHER');
 	}
 
 	/**
@@ -148,7 +149,7 @@ class PostService {
 		await this.postRepository.update(id, data);
 
 		// Retornar com includes
-		return await this.getPostById(id);
+		return await this.getPostById(id, 'TEACHER');
 	}
 
 	/**
@@ -174,21 +175,20 @@ class PostService {
 	 * @returns {Promise<{data: Array, pagination: Object}>}
 	 */
 	async searchPosts(filters = {}, userRole = null) {
-		const { query, title, author, page, limit } = filters;
+		const { query, title, author, discipline, status, page, limit, sort } = filters;
 
-		// Se nenhum parâmetro de busca, chamar listPosts
-		if (!query && !title && !author) {
-			return await this.listPosts({ page, limit }, userRole);
+		// Se nenhum parâmetro de busca, delegar para listPosts
+		if (!query && !title && !author && !discipline && !status) {
+			return await this.listPosts({ page, limit, sort }, userRole);
 		}
 
 		const pageNum = parseInt(page) || 1;
 		const limitNum = parseInt(limit) || 20;
 		const offset = (pageNum - 1) * limitNum;
 
-		// Construir WHERE clause
 		const where = {};
 
-		// Filtro de busca por query (título OU conteúdo)
+		// Busca por texto (título ou conteúdo)
 		if (query) {
 			where[Op.or] = [
 				{ title: { [Op.iLike]: `%${query}%` } },
@@ -201,35 +201,37 @@ class PostService {
 			where.title = { [Op.iLike]: `%${title}%` };
 		}
 
-		// Visibilidade por role
-		if (userRole !== 'TEACHER') {
-			// STUDENT ou não autenticado: apenas PUBLISHED
-			where.status = 'PUBLISHED';
+		// Filtro por disciplina (discipline_id exact match)
+		if (discipline) {
+			where.discipline_id = discipline;
 		}
 
-		// Filtro por autor
+		// Visibilidade por role + filtro de status
+		if (userRole !== 'TEACHER') {
+			// STUDENT ou não autenticado: força PUBLISHED independente do ?status=
+			where.status = 'PUBLISHED';
+		} else if (status) {
+			// TEACHER pode filtrar por status específico
+			where.status = status;
+		}
+
+		// Filtro por autor (busca por nome)
 		let authorWhere = null;
 		if (author) {
-			authorWhere = {
-				name: { [Op.iLike]: `%${author}%` }
-			};
+			authorWhere = { name: { [Op.iLike]: `%${author}%` } };
 		}
 
 		const { count, rows } = await this.postRepository.search(where, authorWhere, {
 			limit: limitNum,
-			offset
+			offset,
+			sort
 		});
 
 		const totalPages = Math.ceil(count / limitNum);
 
 		return {
 			data: serializePosts(rows),
-			pagination: {
-				page: pageNum,
-				limit: limitNum,
-				total: count,
-				totalPages
-			}
+			pagination: { page: pageNum, limit: limitNum, total: count, totalPages }
 		};
 	}
 }
