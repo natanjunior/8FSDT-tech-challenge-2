@@ -14,6 +14,12 @@ class AuthService {
   async login(login, password) {
     const user = await this.userRepository.findByLogin(login);
     if (!user) {
+      // Constant-time mitigation: run a dummy compare so response time
+      // doesn't reveal whether the login exists.
+      await this.userRepository.verifyPassword(
+        password,
+        '$2b$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy'
+      );
       const err = new Error('Credenciais inválidas');
       err.status = 401;
       throw err;
