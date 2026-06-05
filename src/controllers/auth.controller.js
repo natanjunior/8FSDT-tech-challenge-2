@@ -1,53 +1,48 @@
 'use strict';
 
-/**
- * AuthController - Controlador de autenticação
- */
 class AuthController {
-	constructor(authService) {
-		this.authService = authService;
-	}
+  constructor(authService) {
+    this.authService = authService;
+  }
 
-	/**
-	 * Login passwordless (apenas com email)
-	 * POST /auth/login
-	 * Body: { email }
-	 *
-	 * Nota: Validação feita pelo middleware express-validator
-	 */
-	async login(req, res) {
-		try {
-			// Email já validado e normalizado pelo middleware!
-			const result = await this.authService.login(req.body.email);
-			return res.status(200).json(result);
-		} catch (error) {
-			// Email não cadastrado
-			if (error.message === 'Email não cadastrado') {
-				return res.status(404).json({ error: error.message });
-			}
+  async login(req, res) {
+    try {
+      const { login, password } = req.body;
+      const result = await this.authService.login(login, password);
+      return res.status(200).json(result);
+    } catch (error) {
+      const status = error.status || 500;
+      return res.status(status).json({ error: error.message });
+    }
+  }
 
-			// Outros erros
-			return res.status(500).json({ error: error.message });
-		}
-	}
+  async logout(req, res) {
+    try {
+      await this.authService.logout(req.user.sessionId);
+      return res.status(204).send();
+    } catch (error) {
+      return res.status(500).json({ error: error.message });
+    }
+  }
 
-	/**
-	 * Logout - remove sessão
-	 * POST /auth/logout
-	 * Requer: authenticate middleware (req.user.sessionId)
-	 */
-	async logout(req, res) {
-		try {
-			const { sessionId } = req.user;
-
-			// Chamar service
-			await this.authService.logout(sessionId);
-
-			return res.status(204).send();
-		} catch (error) {
-			return res.status(500).json({ error: error.message });
-		}
-	}
+  async changePassword(req, res) {
+    try {
+      await this.authService.changePassword(
+        req.user.id,
+        req.body.current_password,
+        req.body.new_password
+      );
+      return res.status(204).send();
+    } catch (error) {
+      if (error.field) {
+        return res.status(error.status || 400).json({
+          errors: [{ field: error.field, message: error.message }]
+        });
+      }
+      const status = error.status || 500;
+      return res.status(status).json({ error: error.message });
+    }
+  }
 }
 
 module.exports = AuthController;
