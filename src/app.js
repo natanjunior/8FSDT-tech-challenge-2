@@ -9,6 +9,8 @@ const postRoutes = require('./routes/post.routes');
 const disciplineRoutes = require('./routes/discipline.routes');
 const commentRoutes = require('./routes/comment.routes');
 const readRoutes = require('./routes/read.routes');
+const teacherRoutes = require('./routes/teacher.routes');
+const studentRoutes = require('./routes/student.routes');
 
 const app = express();
 
@@ -22,6 +24,8 @@ app.use('/posts', postRoutes);
 app.use('/disciplines', disciplineRoutes);
 app.use('/comments', commentRoutes);
 app.use('/reads', readRoutes);
+app.use('/teachers', teacherRoutes);
+app.use('/students', studentRoutes);
 
 // Swagger Documentation
 app.use(
