@@ -5,7 +5,7 @@ const { parseFhirSort } = require('../utils/sort');
 const { parseReference } = require('../utils/fhirReference');
 
 function buildMineExpression(profileId) {
-  if (!profileId) return null;
+  if (!profileId || !parseReference(profileId)) return null;
   return Sequelize.literal(
     `CASE WHEN author = ${Sequelize.escape(profileId)} THEN 0 ELSE 1 END`
   );
