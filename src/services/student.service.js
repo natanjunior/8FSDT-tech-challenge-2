@@ -26,6 +26,15 @@ class StudentService {
     return this._serializeFull(s);
   }
 
+  _pickFields(data) {
+    const allowed = ['name', 'email', 'birth_date', 'pronouns', 'biography', 'status', 'course'];
+    const out = {};
+    for (const key of allowed) {
+      if (data[key] !== undefined) out[key] = data[key];
+    }
+    return out;
+  }
+
   async create(data, requester) {
     if (requester && requester.role === 'STUDENT') {
       const err = new Error('Estudantes não podem cadastrar outros estudantes');
@@ -33,7 +42,8 @@ class StudentService {
       throw err;
     }
 
-    const { user: userPayload, ...studentFields } = data;
+    const { user: userPayload } = data;
+    const studentFields = this._pickFields(data);
     return this.studentRepository.transaction(async (t) => {
       let userId = null;
       if (userPayload) {
@@ -60,8 +70,9 @@ class StudentService {
       throw err;
     }
     this._assertCanModify(existing, requester);
+    const studentFields = this._pickFields(data);
     return this.studentRepository.transaction(async (t) => {
-      await this.studentRepository.update(id, data, { transaction: t });
+      await this.studentRepository.update(id, studentFields, { transaction: t });
       return this.getById(id);
     });
   }

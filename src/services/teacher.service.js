@@ -26,8 +26,18 @@ class TeacherService {
     return this._serializeFull(teacher);
   }
 
+  _pickFields(data) {
+    const allowed = ['name', 'email', 'birth_date', 'pronouns', 'biography', 'status'];
+    const out = {};
+    for (const key of allowed) {
+      if (data[key] !== undefined) out[key] = data[key];
+    }
+    return out;
+  }
+
   async create(data) {
-    const { discipline_ids, user: userPayload, ...teacherFields } = data;
+    const { discipline_ids, user: userPayload } = data;
+    const teacherFields = this._pickFields(data);
 
     if (discipline_ids && !(await this.teacherRepository.disciplinesExist(discipline_ids))) {
       const err = new Error('Disciplinas inválidas');
@@ -67,7 +77,8 @@ class TeacherService {
     }
     this._assertCanModify(existing, requester);
 
-    const { discipline_ids, ...teacherFields } = data;
+    const { discipline_ids } = data;
+    const teacherFields = this._pickFields(data);
     return this.teacherRepository.transaction(async (t) => {
       await this.teacherRepository.update(id, teacherFields, { transaction: t });
       if (Array.isArray(discipline_ids)) {
