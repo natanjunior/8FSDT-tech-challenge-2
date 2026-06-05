@@ -4,72 +4,18 @@ const express = require('express');
 const router = express.Router();
 const { authController, authenticate } = require('../container');
 const { validate } = require('../middlewares/validate');
-const { loginValidator } = require('../validators/auth.validator');
+const { loginValidator, changePasswordValidator } = require('../validators/auth.validator');
 
-/**
- * @swagger
- * /auth/login:
- *   post:
- *     summary: Login passwordless
- *     description: Autentica um usuário pelo email (sem senha). Retorna um JWT token.
- *     tags: [Auth]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             $ref: '#/components/schemas/LoginRequest'
- *     responses:
- *       200:
- *         description: Login realizado com sucesso
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/LoginResponse'
- *       401:
- *         description: Credenciais inválidas
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
- *       500:
- *         description: Erro interno do servidor
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
- */
 router.post('/login', loginValidator, validate, (req, res) =>
-	authController.login(req, res)
+  authController.login(req, res)
 );
 
-/**
- * @swagger
- * /auth/logout:
- *   post:
- *     summary: Logout
- *     description: Encerra a sessão do usuário autenticado.
- *     tags: [Auth]
- *     security:
- *       - bearerAuth: []
- *     responses:
- *       200:
- *         description: Logout realizado com sucesso
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: Logout realizado com sucesso
- *       401:
- *         description: Token não fornecido ou inválido
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
- */
-router.post('/logout', authenticate, (req, res) => authController.logout(req, res));
+router.post('/logout', authenticate, (req, res) =>
+  authController.logout(req, res)
+);
+
+router.patch('/password', authenticate, changePasswordValidator, validate, (req, res) =>
+  authController.changePassword(req, res)
+);
 
 module.exports = router;
