@@ -1,6 +1,7 @@
 'use strict';
 
 const { Model } = require('sequelize');
+const { isReference } = require('../utils/fhirReference');
 
 module.exports = (sequelize, DataTypes) => {
   class Comment extends Model {
@@ -8,16 +9,6 @@ module.exports = (sequelize, DataTypes) => {
       Comment.belongsTo(models.Post, {
         foreignKey: 'post_id',
         as: 'post'
-      });
-
-      Comment.belongsTo(models.User, {
-        foreignKey: 'user_id',
-        as: 'author'
-      });
-
-      models.Post.hasMany(Comment, {
-        foreignKey: 'post_id',
-        as: 'comments'
       });
     }
   }
@@ -34,21 +25,24 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.UUID,
         allowNull: false
       },
-      user_id: {
-        type: DataTypes.UUID,
-        allowNull: true
-      },
-      anonymous_id: {
-        type: DataTypes.UUID,
-        allowNull: true
-      },
-      author_name: {
-        type: DataTypes.STRING(100),
-        allowNull: true
+      author: {
+        type: DataTypes.STRING(50),
+        allowNull: false,
+        validate: {
+          isFhirReference(value) {
+            if (!isReference(value)) {
+              throw new Error('author deve ser uma referência FHIR válida (Teacher/<uuid> ou Student/<uuid>)');
+            }
+          }
+        }
       },
       content: {
         type: DataTypes.TEXT,
-        allowNull: false
+        allowNull: false,
+        validate: {
+          notEmpty: { msg: 'Conteúdo é obrigatório' },
+          len: { args: [1, 1000], msg: 'Conteúdo deve ter entre 1 e 1000 caracteres' }
+        }
       }
     },
     {
