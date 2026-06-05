@@ -1,126 +1,86 @@
 'use strict';
 
-const { Comment, Sequelize } = require('../models');
+const { Comment, Teacher, Student, Sequelize } = require('../models');
 const { parseFhirSort } = require('../utils/sort');
+const { parseReference } = require('../utils/fhirReference');
 
-const UUID_REGEX =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
-/**
- * Monta a expressão SQL para identificar comentários do usuário atual.
- * Retorna null se não houver identidade disponível.
- *
- * @param {string|null} userId    UUID do usuário autenticado
- * @param {string|null} anonymousId  UUID do header X-Anonymous-Id
- * @returns {Sequelize.literal|null}
- */
-function buildMineExpression(userId, anonymousId) {
-  const conditions = [];
-
-  if (userId && UUID_REGEX.test(userId)) {
-    conditions.push(`user_id = '${userId}'`);
-  }
-  if (anonymousId && UUID_REGEX.test(anonymousId)) {
-    conditions.push(`anonymous_id = '${anonymousId}'`);
-  }
-
-  if (conditions.length === 0) return null;
-
+function buildMineExpression(profileId) {
+  if (!profileId) return null;
   return Sequelize.literal(
-    `CASE WHEN ${conditions.join(' OR ')} THEN 0 ELSE 1 END`
+    `CASE WHEN author = ${Sequelize.escape(profileId)} THEN 0 ELSE 1 END`
   );
 }
 
 class CommentRepository {
-  /**
-   * Verifica se um comentário pode ser deletado pela identidade fornecida.
-   * TEACHER pode deletar qualquer comentário.
-   * Dono autenticado ou anônimo pode deletar o próprio.
-   */
-  canDelete(comment, userRole, userId, anonymousId) {
+  canDelete(comment, userRole, profileId) {
     if (userRole === 'TEACHER') return true;
-    if (userId && comment.user_id === userId) return true;
-    if (
-      anonymousId &&
-      UUID_REGEX.test(anonymousId) &&
-      comment.anonymous_id === anonymousId
-    )
-      return true;
+    if (profileId && comment.author === profileId) return true;
     return false;
   }
 
-  /**
-   * Serializa um comentário para o response, calculando can_delete.
-   */
-  serialize(comment, userRole, userId, anonymousId) {
-    const plain =
-      typeof comment.toJSON === 'function' ? comment.toJSON() : { ...comment };
-
-    return {
-      id: plain.id,
-      content: plain.content,
-      author_name: plain.author_name,
-      is_anonymous: plain.user_id === null,
-      can_delete: this.canDelete(plain, userRole, userId, anonymousId),
-      created_at: plain.createdAt || plain.created_at
-    };
-  }
-
-  /**
-   * Busca comentários com paginação e ordenação.
-   *
-   * @param {Object} options
-   * @param {string|undefined} options.postId   Filtrar por post
-   * @param {number} options.page
-   * @param {number} options.limit
-   * @param {string|undefined} options.sort     FHIR sort param
-   * @param {string|null} options.userId        Para campo mine
-   * @param {string|null} options.anonymousId   Para campo mine
-   */
-  async search({ postId, page, limit, sort, userId, anonymousId }) {
+  async search({ postId, page, limit, sort, profileId }) {
     const offset = (page - 1) * limit;
-    const mineExpr = buildMineExpression(userId, anonymousId);
-
-    // Campo mine só entra no fieldMap quando há identidade disponível
+    const mineExpr = buildMineExpression(profileId);
     const fieldMap = {
       created_at: ['created_at'],
       updated_at: ['updated_at'],
       ...(mineExpr ? { mine: [mineExpr] } : {})
     };
-
     const defaultOrder = mineExpr
       ? [[mineExpr, 'ASC'], ['created_at', 'DESC']]
       : [['created_at', 'DESC']];
-
     const order = parseFhirSort(sort, fieldMap, defaultOrder);
 
     const where = {};
-    if (postId) {
-      where.post_id = postId;
-    }
+    if (postId) where.post_id = postId;
 
     const { count, rows } = await Comment.findAndCountAll({
-      where,
-      order,
-      limit,
-      offset,
-      distinct: true
+      where, order, limit, offset, distinct: true
     });
 
-    return { count, rows };
+    const refs = rows.map((r) => parseReference(r.author)).filter(Boolean);
+    const teacherIds = refs.filter((r) => r.type === 'Teacher').map((r) => `${r.type}/${r.id}`);
+    const studentIds = refs.filter((r) => r.type === 'Student').map((r) => `${r.type}/${r.id}`);
+
+    const teachersMap = new Map();
+    const studentsMap = new Map();
+    if (teacherIds.length) {
+      const teachers = await Teacher.findAll({ where: { id: teacherIds }, attributes: ['id', 'name'] });
+      teachers.forEach((t) => teachersMap.set(t.id, t));
+    }
+    if (studentIds.length) {
+      const students = await Student.findAll({ where: { id: studentIds }, attributes: ['id', 'name'] });
+      students.forEach((s) => studentsMap.set(s.id, s));
+    }
+
+    const enriched = rows.map((r) => {
+      const ref = parseReference(r.author);
+      const map = ref?.type === 'Teacher' ? teachersMap : studentsMap;
+      const found = map.get(r.author);
+      return {
+        raw: r,
+        author: ref && found ? { id: r.author, type: ref.type, name: found.name } : null
+      };
+    });
+
+    return { count, rows: enriched };
   }
 
-  async create(data) {
-    return Comment.create(data);
+  serialize(enriched, userRole, profileId) {
+    const r = enriched.raw;
+    const plain = typeof r.toJSON === 'function' ? r.toJSON() : { ...r };
+    return {
+      id: plain.id,
+      content: plain.content,
+      author: enriched.author,
+      can_delete: this.canDelete(plain, userRole, profileId),
+      created_at: plain.createdAt || plain.created_at
+    };
   }
 
-  async findById(id) {
-    return Comment.findByPk(id);
-  }
-
-  async delete(id) {
-    return Comment.destroy({ where: { id } });
-  }
+  async findById(id) { return Comment.findByPk(id); }
+  async create(data) { return Comment.create(data); }
+  async delete(id) { return Comment.destroy({ where: { id } }); }
 }
 
 module.exports = CommentRepository;
