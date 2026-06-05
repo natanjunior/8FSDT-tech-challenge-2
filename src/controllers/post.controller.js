@@ -61,7 +61,7 @@ class PostController {
 	async createPost(req, res) {
 		try {
 			// Dados já validados e sanitizados pelo middleware!
-			const post = await this.postService.createPost(req.body, req.user.id);
+			const post = await this.postService.createPost(req.body, req.user.profileId);
 			return res.status(201).json(post);
 		} catch (error) {
 			return res.status(500).json({ error: error.message });
