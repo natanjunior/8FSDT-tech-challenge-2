@@ -19,7 +19,7 @@ module.exports = {
     await queryInterface.sequelize.query(`
       UPDATE users
       SET login = email,
-          password_hash = '$2b$10$placeholder.hash.gets.replaced.by.seeds.4567890ABCDEFGHI'
+          password_hash = '$2b$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy'
       WHERE login IS NULL;
     `);
 
