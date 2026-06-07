@@ -36,9 +36,8 @@ describe('CommentService', () => {
 
       await service.searchComments(
         { postId: 'post-1', page: 1, limit: 10, sort: '-created_at' },
-        null,
-        null,
-        null
+        'TEACHER',
+        'Teacher/abc'
       );
 
       expect(mockCommentRepository.search).toHaveBeenCalledWith({
@@ -46,126 +45,99 @@ describe('CommentService', () => {
         page: 1,
         limit: 10,
         sort: '-created_at',
-        userId: null,
-        anonymousId: null
+        profileId: 'Teacher/abc'
       });
     });
 
-    test('retorna data e pagination', async () => {
-      const mockComment = { id: 'c1', content: 'Texto', user_id: null };
+    test('retorna data e pagination, serializando cada row', async () => {
+      const enriched = { raw: { id: 'c1', content: 'Texto' }, author: { id: 'Teacher/abc', name: 'Prof' } };
       mockCommentRepository.search.mockResolvedValue({
         count: 1,
-        rows: [mockComment]
+        rows: [enriched]
       });
       mockCommentRepository.serialize.mockReturnValue({
         id: 'c1',
         content: 'Texto',
-        author_name: null,
-        is_anonymous: true,
-        can_delete: false,
+        author: { id: 'Teacher/abc', name: 'Prof' },
+        can_delete: true,
         created_at: '2026-01-01'
       });
 
       const result = await service.searchComments(
         { page: 1, limit: 10 },
-        null,
-        null,
-        null
+        'TEACHER',
+        'Teacher/abc'
       );
 
+      expect(mockCommentRepository.serialize).toHaveBeenCalledWith(enriched, 'TEACHER', 'Teacher/abc');
       expect(result.data).toHaveLength(1);
       expect(result.pagination.total).toBe(1);
     });
   });
 
   describe('createComment()', () => {
-    test('cria comentário autenticado com user_id', async () => {
+    test('cria comentário com author = profileId', async () => {
       mockPostRepository.findById.mockResolvedValue(mockPost);
-      const created = {
-        id: 'c-new',
-        content: 'Conteúdo',
-        user_id: 'user-1',
-        anonymous_id: null,
-        author_name: null,
-        created_at: new Date()
-      };
+      const created = { id: 'c-new' };
       mockCommentRepository.create.mockResolvedValue(created);
+
+      const enrichedMine = { raw: { id: 'c-new' }, author: { id: 'Teacher/abc', name: 'Prof' } };
+      mockCommentRepository.search.mockResolvedValue({ count: 1, rows: [enrichedMine] });
       mockCommentRepository.serialize.mockReturnValue({
         id: 'c-new',
         content: 'Conteúdo',
-        author_name: null,
-        is_anonymous: false,
+        author: { id: 'Teacher/abc', name: 'Prof' },
         can_delete: true,
-        created_at: created.created_at
+        created_at: new Date()
       });
 
       const result = await service.createComment(
         { post_id: 'post-uuid-1', content: 'Conteúdo' },
-        'user-1',
-        'TEACHER',
-        null
+        'Teacher/abc',
+        'TEACHER'
       );
 
-      expect(mockCommentRepository.create).toHaveBeenCalledWith(
-        expect.objectContaining({ user_id: 'user-1', anonymous_id: null })
-      );
-      expect(result.is_anonymous).toBe(false);
+      expect(mockCommentRepository.create).toHaveBeenCalledWith({
+        post_id: 'post-uuid-1',
+        content: 'Conteúdo',
+        author: 'Teacher/abc'
+      });
+      expect(mockCommentRepository.serialize).toHaveBeenCalledWith(enrichedMine, 'TEACHER', 'Teacher/abc');
+      expect(result.id).toBe('c-new');
     });
 
-    test('cria comentário anônimo com anonymous_id', async () => {
-      mockPostRepository.findById.mockResolvedValue(mockPost);
-      const anonId = 'anon-uuid-1';
-      const created = {
-        id: 'c-anon',
-        content: 'Anônimo',
-        user_id: null,
-        anonymous_id: anonId,
-        author_name: 'Visitante',
-        created_at: new Date()
-      };
-      mockCommentRepository.create.mockResolvedValue(created);
-      mockCommentRepository.serialize.mockReturnValue({
-        id: 'c-anon',
-        content: 'Anônimo',
-        author_name: 'Visitante',
-        is_anonymous: true,
-        can_delete: true,
-        created_at: created.created_at
-      });
+    test('lança erro 401 quando não autenticado (sem profileId)', async () => {
+      await expect(
+        service.createComment({ post_id: 'post-uuid-1', content: 'x' }, null, null)
+      ).rejects.toThrow('Não autenticado');
 
-      const result = await service.createComment(
-        { post_id: 'post-uuid-1', content: 'Anônimo', author_name: 'Visitante' },
-        null,
-        null,
-        anonId
-      );
-
-      expect(mockCommentRepository.create).toHaveBeenCalledWith(
-        expect.objectContaining({ user_id: null, anonymous_id: anonId })
-      );
-      expect(result.is_anonymous).toBe(true);
+      expect(mockPostRepository.findById).not.toHaveBeenCalled();
+      expect(mockCommentRepository.create).not.toHaveBeenCalled();
     });
 
     test('lança erro quando post não existe', async () => {
       mockPostRepository.findById.mockResolvedValue(null);
 
       await expect(
-        service.createComment({ post_id: 'nao-existe', content: 'x' }, null, null, 'anon-1')
+        service.createComment({ post_id: 'nao-existe', content: 'x' }, 'Student/xyz', 'STUDENT')
       ).rejects.toThrow('Post não encontrado');
+
+      expect(mockCommentRepository.create).not.toHaveBeenCalled();
     });
   });
 
   describe('deleteComment()', () => {
     test('deleta quando canDelete retorna true', async () => {
-      const comment = { id: 'c1', user_id: 'u1', anonymous_id: null };
+      const comment = { id: 'c1', author: 'Teacher/abc' };
       mockCommentRepository.findById.mockResolvedValue(comment);
       mockCommentRepository.canDelete.mockReturnValue(true);
       mockCommentRepository.delete.mockResolvedValue(1);
 
       await expect(
-        service.deleteComment('c1', 'TEACHER', 'u1', null)
+        service.deleteComment('c1', 'TEACHER', 'Teacher/abc')
       ).resolves.toBeUndefined();
 
+      expect(mockCommentRepository.canDelete).toHaveBeenCalledWith(comment, 'TEACHER', 'Teacher/abc');
       expect(mockCommentRepository.delete).toHaveBeenCalledWith('c1');
     });
 
@@ -173,18 +145,20 @@ describe('CommentService', () => {
       mockCommentRepository.findById.mockResolvedValue(null);
 
       await expect(
-        service.deleteComment('inexistente', null, null, null)
+        service.deleteComment('inexistente', null, null)
       ).rejects.toThrow('Comentário não encontrado');
     });
 
     test('lança erro quando sem permissão', async () => {
-      const comment = { id: 'c1', user_id: 'outro-user', anonymous_id: null };
+      const comment = { id: 'c1', author: 'Student/outro' };
       mockCommentRepository.findById.mockResolvedValue(comment);
       mockCommentRepository.canDelete.mockReturnValue(false);
 
       await expect(
-        service.deleteComment('c1', 'STUDENT', 'meu-user', null)
+        service.deleteComment('c1', 'STUDENT', 'Student/meu')
       ).rejects.toThrow('Sem permissão para excluir este comentário');
+
+      expect(mockCommentRepository.delete).not.toHaveBeenCalled();
     });
   });
 });

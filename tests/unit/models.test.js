@@ -1,25 +1,26 @@
-// Tests for Sequelize Models (v11 - Passwordless)
+// Tests for Sequelize Models (Fase 4 - profiles, login+password, FHIR refs)
 // Run with: npm test tests/unit/models.test.js
 
 const { User, Post, Discipline, PostRead, UserSession } = require('../../src/models');
 
-describe('Models Definition - v11 (Passwordless)', () => {
+describe('Models Definition - Fase 4', () => {
 	describe('User Model', () => {
-		test('should have correct attributes (WITHOUT password)', () => {
+		test('should have correct attributes (login + password_hash, NO name/email)', () => {
 			const attributes = Object.keys(User.rawAttributes);
 
 			expect(attributes).toContain('id');
-			expect(attributes).toContain('name');
-			expect(attributes).toContain('email');
+			expect(attributes).toContain('login');
+			expect(attributes).toContain('password_hash');
 			expect(attributes).toContain('role');
 
-			// v11: SEM password!
-			expect(attributes).not.toContain('password');
+			// Fase 4: name/email moved to Teacher/Student profiles
+			expect(attributes).not.toContain('name');
+			expect(attributes).not.toContain('email');
 		});
 
-		test('should have correct associations', () => {
-			expect(User.associations.posts).toBeDefined();
-			expect(User.associations.post_reads).toBeDefined();
+		test('should have correct associations (teacher, student, sessions)', () => {
+			expect(User.associations.teacher).toBeDefined();
+			expect(User.associations.student).toBeDefined();
 			expect(User.associations.sessions).toBeDefined();
 		});
 
@@ -27,40 +28,44 @@ describe('Models Definition - v11 (Passwordless)', () => {
 			const roleType = User.rawAttributes.role.type;
 			expect(roleType.values).toEqual(['TEACHER', 'STUDENT']);
 		});
+
+		test('defaultScope should exclude password_hash', () => {
+			expect(User.options.defaultScope.attributes.exclude).toContain('password_hash');
+		});
 	});
 
 	describe('Post Model', () => {
-		test('should have correct attributes (WITHOUT deleted_at, WITH status ENUM)', () => {
+		test('should have correct attributes (author STRING FK, status ENUM, NO deleted_at)', () => {
 			const attributes = Object.keys(Post.rawAttributes);
 
 			expect(attributes).toContain('id');
 			expect(attributes).toContain('title');
 			expect(attributes).toContain('content');
-			expect(attributes).toContain('author_id');
+			expect(attributes).toContain('author'); // Fase 4: author (STRING FHIR ref) replaced author_id
 			expect(attributes).toContain('discipline_id');
-			expect(attributes).toContain('status'); // v12: status ENUM field
+			expect(attributes).toContain('status');
 			expect(attributes).toContain('published_at');
 
-			// v11: SEM deleted_at (hard delete)!
+			// Fase 4: author replaced author_id
+			expect(attributes).not.toContain('author_id');
+			// Hard delete (no deleted_at)
 			expect(attributes).not.toContain('deleted_at');
-			// v12: SEM status_id (ENUM direto)!
+			// status is ENUM direct (no status_id)
 			expect(attributes).not.toContain('status_id');
 		});
 
-		test('should have correct associations', () => {
-			expect(Post.associations.author).toBeDefined();
+		test('should have correct associations (author_teacher, discipline, reads, comments)', () => {
+			expect(Post.associations.author_teacher).toBeDefined();
 			expect(Post.associations.discipline).toBeDefined();
 			expect(Post.associations.reads).toBeDefined();
-			// v12: NO status association (direct ENUM field)
+			expect(Post.associations.comments).toBeDefined();
 		});
 
 		test('should NOT have paranoid enabled (hard delete)', () => {
-			// v11: Hard delete (paranoid mode must not be enabled)
 			expect(Post.options.paranoid).not.toBe(true);
 		});
 
 		test('status should be ENUM with DRAFT, PUBLISHED, ARCHIVED', () => {
-			// v12: status is now a direct ENUM field
 			const statusType = Post.rawAttributes.status.type;
 			expect(statusType.values).toEqual(['DRAFT', 'PUBLISHED', 'ARCHIVED']);
 		});
@@ -86,18 +91,19 @@ describe('Models Definition - v11 (Passwordless)', () => {
 	});
 
 	describe('PostRead Model', () => {
-		test('should have correct attributes', () => {
+		test('should have correct attributes (reader FHIR ref)', () => {
 			const attributes = Object.keys(PostRead.rawAttributes);
 
 			expect(attributes).toContain('id');
 			expect(attributes).toContain('post_id');
-			expect(attributes).toContain('user_id');
+			expect(attributes).toContain('reader'); // Fase 4: reader replaced user_id
 			expect(attributes).toContain('read_at');
+
+			expect(attributes).not.toContain('user_id');
 		});
 
 		test('should have correct associations', () => {
 			expect(PostRead.associations.post).toBeDefined();
-			expect(PostRead.associations.user).toBeDefined();
 		});
 
 		test('should NOT have timestamps (uses read_at)', () => {
@@ -125,22 +131,24 @@ describe('Models Definition - v11 (Passwordless)', () => {
 	});
 });
 
-describe('Model Count - v13', () => {
-	test('should have exactly 6 models (with Comment)', () => {
+describe('Model Count - Fase 4', () => {
+	test('should have exactly 9 models', () => {
 		const models = require('../../src/models');
 		const modelNames = Object.keys(models).filter(
 			key => key !== 'sequelize' && key !== 'Sequelize'
 		);
 
-		// v13: 6 models (User, Post, PostRead, UserSession, Discipline, Comment)
-		// SEM PostStatus (v12 - status é ENUM direto no Post)!
-		expect(modelNames).toHaveLength(6);
+		// Fase 4: User, Teacher, Student, TeacherDiscipline, Post, Comment, PostRead, Discipline, UserSession
+		expect(modelNames).toHaveLength(9);
 		expect(modelNames).toContain('User');
+		expect(modelNames).toContain('Teacher');
+		expect(modelNames).toContain('Student');
+		expect(modelNames).toContain('TeacherDiscipline');
 		expect(modelNames).toContain('Post');
-		expect(modelNames).toContain('PostRead');
-		expect(modelNames).toContain('UserSession');
-		expect(modelNames).toContain('Discipline');
 		expect(modelNames).toContain('Comment');
+		expect(modelNames).toContain('PostRead');
+		expect(modelNames).toContain('Discipline');
+		expect(modelNames).toContain('UserSession');
 		expect(modelNames).not.toContain('PostStatus');
 	});
 });

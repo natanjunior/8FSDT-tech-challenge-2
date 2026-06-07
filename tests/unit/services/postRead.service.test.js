@@ -1,4 +1,4 @@
-// Tests for PostReadService (FASE 5 - Post Reads)
+// Tests for PostReadService (Fase 4 - Post Reads with FHIR reader ref)
 // Run with: npm test tests/unit/services/postRead.service.test.js
 
 const PostReadService = require('../../../src/services/postRead.service');
@@ -15,8 +15,9 @@ describe('PostReadService - Post Reads', () => {
 		};
 
 		mockPostReadRepository = {
-			findByPostAndUser: jest.fn(),
-			create: jest.fn()
+			findByPostAndReader: jest.fn(),
+			create: jest.fn(),
+			findPaginated: jest.fn()
 		};
 
 		// Instanciar service com dependências injetadas
@@ -29,36 +30,36 @@ describe('PostReadService - Post Reads', () => {
 
 	describe('markAsRead()', () => {
 		const postId = 'post-uuid-123';
-		const userId = 'user-uuid-456';
+		const reader = 'Student/abc-456';
 
 		test('should create new read record if not exists', async () => {
 			const mockPost = { id: postId, title: 'Test Post' };
 			const mockNewRead = {
 				id: 'read-uuid-789',
 				post_id: postId,
-				user_id: userId,
+				reader,
 				read_at: new Date('2024-01-01T10:00:00Z')
 			};
 
 			mockPostRepository.findById.mockResolvedValue(mockPost);
-			mockPostReadRepository.findByPostAndUser.mockResolvedValue(null); // Não existe
+			mockPostReadRepository.findByPostAndReader.mockResolvedValue(null); // Não existe
 			mockPostReadRepository.create.mockResolvedValue(mockNewRead);
 
-			const result = await postReadService.markAsRead(postId, userId);
+			const result = await postReadService.markAsRead(postId, reader);
 
 			expect(mockPostRepository.findById).toHaveBeenCalledWith(postId);
-			expect(mockPostReadRepository.findByPostAndUser).toHaveBeenCalledWith(postId, userId);
+			expect(mockPostReadRepository.findByPostAndReader).toHaveBeenCalledWith(postId, reader);
 			expect(mockPostReadRepository.create).toHaveBeenCalledWith(
 				expect.objectContaining({
 					post_id: postId,
-					user_id: userId
+					reader
 				})
 			);
 			expect(result).toEqual({
 				created: true,
 				id: mockNewRead.id,
 				post_id: mockNewRead.post_id,
-				user_id: mockNewRead.user_id,
+				reader: mockNewRead.reader,
 				read_at: mockNewRead.read_at
 			});
 		});
@@ -68,23 +69,23 @@ describe('PostReadService - Post Reads', () => {
 			const mockExistingRead = {
 				id: 'read-uuid-existing',
 				post_id: postId,
-				user_id: userId,
+				reader,
 				read_at: new Date('2024-01-01T09:00:00Z')
 			};
 
 			mockPostRepository.findById.mockResolvedValue(mockPost);
-			mockPostReadRepository.findByPostAndUser.mockResolvedValue(mockExistingRead);
+			mockPostReadRepository.findByPostAndReader.mockResolvedValue(mockExistingRead);
 
-			const result = await postReadService.markAsRead(postId, userId);
+			const result = await postReadService.markAsRead(postId, reader);
 
 			expect(mockPostRepository.findById).toHaveBeenCalledWith(postId);
-			expect(mockPostReadRepository.findByPostAndUser).toHaveBeenCalledWith(postId, userId);
+			expect(mockPostReadRepository.findByPostAndReader).toHaveBeenCalledWith(postId, reader);
 			expect(mockPostReadRepository.create).not.toHaveBeenCalled(); // Não deve criar novo
 			expect(result).toEqual({
 				created: false,
 				id: mockExistingRead.id,
 				post_id: mockExistingRead.post_id,
-				user_id: mockExistingRead.user_id,
+				reader: mockExistingRead.reader,
 				read_at: mockExistingRead.read_at
 			});
 		});
@@ -92,12 +93,12 @@ describe('PostReadService - Post Reads', () => {
 		test('should throw error if post not found', async () => {
 			mockPostRepository.findById.mockResolvedValue(null);
 
-			await expect(postReadService.markAsRead(postId, userId)).rejects.toThrow(
+			await expect(postReadService.markAsRead(postId, reader)).rejects.toThrow(
 				'Post não encontrado'
 			);
 
 			expect(mockPostRepository.findById).toHaveBeenCalledWith(postId);
-			expect(mockPostReadRepository.findByPostAndUser).not.toHaveBeenCalled();
+			expect(mockPostReadRepository.findByPostAndReader).not.toHaveBeenCalled();
 			expect(mockPostReadRepository.create).not.toHaveBeenCalled();
 		});
 
@@ -106,59 +107,56 @@ describe('PostReadService - Post Reads', () => {
 			const mockNewRead = {
 				id: 'read-uuid-789',
 				post_id: postId,
-				user_id: userId,
+				reader,
 				read_at: new Date()
 			};
 
 			mockPostRepository.findById.mockResolvedValue(mockPost);
-			mockPostReadRepository.findByPostAndUser.mockResolvedValue(null);
+			mockPostReadRepository.findByPostAndReader.mockResolvedValue(null);
 			mockPostReadRepository.create.mockResolvedValue(mockNewRead);
 
-			await postReadService.markAsRead(postId, userId);
+			await postReadService.markAsRead(postId, reader);
 
 			expect(mockPostReadRepository.create).toHaveBeenCalledWith(
 				expect.objectContaining({
 					post_id: postId,
-					user_id: userId,
+					reader,
 					read_at: expect.any(Date)
 				})
 			);
 		});
 	});
 
-	describe('checkIfRead()', () => {
-		const postId = 'post-uuid-123';
-		const userId = 'user-uuid-456';
+	describe('searchReads()', () => {
+		const reader = 'Student/abc-456';
 
-		test('should return { read: true, read_at } if already read', async () => {
-			const mockRead = {
-				id: 'read-uuid-789',
-				post_id: postId,
-				user_id: userId,
-				read_at: new Date('2024-01-01T10:00:00Z')
-			};
+		test('should return data and pagination', async () => {
+			const rows = [
+				{ id: 'r1', post_id: 'p1', reader, read_at: new Date('2024-01-01T10:00:00Z') }
+			];
+			mockPostReadRepository.findPaginated.mockResolvedValue({ count: 1, rows });
 
-			mockPostReadRepository.findByPostAndUser.mockResolvedValue(mockRead);
+			const result = await postReadService.searchReads(reader, { page: 1, limit: 20 });
 
-			const result = await postReadService.checkIfRead(postId, userId);
-
-			expect(mockPostReadRepository.findByPostAndUser).toHaveBeenCalledWith(postId, userId);
-			expect(result).toEqual({
-				read: true,
-				read_at: mockRead.read_at
-			});
+			expect(mockPostReadRepository.findPaginated).toHaveBeenCalledWith(
+				reader,
+				expect.objectContaining({ page: 1, limit: 20 })
+			);
+			expect(result.data).toEqual([
+				{ id: 'r1', post_id: 'p1', reader, read_at: rows[0].read_at }
+			]);
+			expect(result.pagination).toEqual({ page: 1, limit: 20, total: 1, totalPages: 1 });
 		});
 
-		test('should return { read: false, read_at: null } if not read', async () => {
-			mockPostReadRepository.findByPostAndUser.mockResolvedValue(null);
+		test('should pass postId filter to repository', async () => {
+			mockPostReadRepository.findPaginated.mockResolvedValue({ count: 0, rows: [] });
 
-			const result = await postReadService.checkIfRead(postId, userId);
+			await postReadService.searchReads(reader, { postId: 'post-1' });
 
-			expect(mockPostReadRepository.findByPostAndUser).toHaveBeenCalledWith(postId, userId);
-			expect(result).toEqual({
-				read: false,
-				read_at: null
-			});
+			expect(mockPostReadRepository.findPaginated).toHaveBeenCalledWith(
+				reader,
+				expect.objectContaining({ postId: 'post-1' })
+			);
 		});
 	});
 });

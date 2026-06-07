@@ -1,4 +1,4 @@
-// Tests for AuthService (Passwordless Authentication)
+// Tests for AuthService (Fase 4 - login + password, profiles, FHIR refs)
 // Run with: npm test tests/unit/services/auth.service.test.js
 
 const jwt = require('jsonwebtoken');
@@ -10,10 +10,12 @@ jest.mock('uuid');
 
 const AuthService = require('../../../src/services/auth.service');
 
-describe('AuthService - Passwordless Authentication', () => {
+describe('AuthService - login + password', () => {
 	let authService;
 	let mockUserRepository;
 	let mockUserSessionRepository;
+	let mockTeacherRepository;
+	let mockStudentRepository;
 
 	beforeAll(() => {
 		process.env.JWT_SECRET = 'test-secret';
@@ -24,7 +26,10 @@ describe('AuthService - Passwordless Authentication', () => {
 
 		// Criar mocks via objetos simples (injetados no constructor)
 		mockUserRepository = {
-			findByEmail: jest.fn()
+			findByLogin: jest.fn(),
+			verifyPassword: jest.fn(),
+			findById: jest.fn(),
+			updatePasswordHash: jest.fn()
 		};
 
 		mockUserSessionRepository = {
@@ -33,8 +38,21 @@ describe('AuthService - Passwordless Authentication', () => {
 			delete: jest.fn()
 		};
 
-		// Instanciar service com dependências injetadas
-		authService = new AuthService(mockUserRepository, mockUserSessionRepository);
+		mockTeacherRepository = {
+			findByUserId: jest.fn()
+		};
+
+		mockStudentRepository = {
+			findByUserId: jest.fn()
+		};
+
+		// Instanciar service com dependências injetadas (4 repos)
+		authService = new AuthService(
+			mockUserRepository,
+			mockUserSessionRepository,
+			mockTeacherRepository,
+			mockStudentRepository
+		);
 	});
 
 	afterEach(() => {
@@ -44,32 +62,43 @@ describe('AuthService - Passwordless Authentication', () => {
 	describe('login()', () => {
 		const mockUser = {
 			id: '550e8400-e29b-41d4-a716-446655440001',
+			login: 'joao.silva',
+			password_hash: '$2b$10$hashedpassword',
+			role: 'TEACHER'
+		};
+
+		const mockTeacherProfile = {
+			id: 'Teacher/abc-123',
 			name: 'Prof. João Silva',
 			email: 'joao.silva@escola.com',
-			role: 'TEACHER'
+			pronouns: 'ele/dele',
+			status: 'ATIVO',
+			disciplines: [{ id: 'd1', label: 'Matemática' }]
 		};
 
 		const mockSessionId = '123e4567-e89b-12d3-a456-426614174000';
 		const mockToken = 'mock.jwt.token';
 
-		test('should login successfully with valid email', async () => {
-			// Setup mocks
-			mockUserRepository.findByEmail.mockResolvedValue(mockUser);
+		test('should login successfully with valid credentials', async () => {
+			mockUserRepository.findByLogin.mockResolvedValue(mockUser);
+			mockUserRepository.verifyPassword.mockResolvedValue(true);
+			mockTeacherRepository.findByUserId.mockResolvedValue(mockTeacherProfile);
 			uuidv4.mockReturnValue(mockSessionId);
 			jwt.sign.mockReturnValue(mockToken);
 			mockUserSessionRepository.create.mockResolvedValue({});
 
-			// Execute
-			const result = await authService.login('joao.silva@escola.com');
+			const result = await authService.login('joao.silva', 'senha123');
 
-			// Verify
-			expect(mockUserRepository.findByEmail).toHaveBeenCalledWith('joao.silva@escola.com');
+			expect(mockUserRepository.findByLogin).toHaveBeenCalledWith('joao.silva');
+			expect(mockUserRepository.verifyPassword).toHaveBeenCalledWith('senha123', mockUser.password_hash);
+			expect(mockTeacherRepository.findByUserId).toHaveBeenCalledWith(mockUser.id);
 			expect(uuidv4).toHaveBeenCalled();
 			expect(jwt.sign).toHaveBeenCalledWith(
 				{
 					id: mockUser.id,
 					role: mockUser.role,
-					sessionId: mockSessionId
+					sessionId: mockSessionId,
+					profileId: mockTeacherProfile.id
 				},
 				'test-secret',
 				{ expiresIn: '24h' }
@@ -84,43 +113,78 @@ describe('AuthService - Passwordless Authentication', () => {
 			expect(result).toEqual({
 				user: {
 					id: mockUser.id,
-					name: mockUser.name,
-					email: mockUser.email,
+					login: mockUser.login,
 					role: mockUser.role
 				},
+				profile: expect.objectContaining({
+					id: mockTeacherProfile.id,
+					name: mockTeacherProfile.name,
+					disciplines: [{ id: 'd1', label: 'Matemática' }]
+				}),
 				token: mockToken
 			});
 		});
 
-		test('should throw error for non-existent email', async () => {
-			// Setup mock
-			mockUserRepository.findByEmail.mockResolvedValue(null);
-
-			// Execute & Verify
-			await expect(authService.login('invalid@email.com')).rejects.toThrow(
-				'Email não cadastrado'
-			);
-			expect(mockUserRepository.findByEmail).toHaveBeenCalledWith('invalid@email.com');
-			expect(mockUserSessionRepository.create).not.toHaveBeenCalled();
-		});
-
-		test('should return user without sensitive data', async () => {
-			// Setup mocks
-			mockUserRepository.findByEmail.mockResolvedValue(mockUser);
+		test('should resolve STUDENT profile via studentRepository', async () => {
+			const studentUser = { ...mockUser, role: 'STUDENT', login: 'aluno' };
+			const studentProfile = {
+				id: 'Student/xyz-789',
+				name: 'Aluno Teste',
+				status: 'ATIVO',
+				course: 'Engenharia'
+			};
+			mockUserRepository.findByLogin.mockResolvedValue(studentUser);
+			mockUserRepository.verifyPassword.mockResolvedValue(true);
+			mockStudentRepository.findByUserId.mockResolvedValue(studentProfile);
 			uuidv4.mockReturnValue(mockSessionId);
 			jwt.sign.mockReturnValue(mockToken);
 			mockUserSessionRepository.create.mockResolvedValue({});
 
-			// Execute
-			const result = await authService.login('joao.silva@escola.com');
+			const result = await authService.login('aluno', 'senha123');
 
-			// Verify user object doesn't contain password or other sensitive data
-			expect(result.user).toEqual({
-				id: mockUser.id,
-				name: mockUser.name,
-				email: mockUser.email,
-				role: mockUser.role
+			expect(mockStudentRepository.findByUserId).toHaveBeenCalledWith(studentUser.id);
+			expect(result.profile).toEqual(
+				expect.objectContaining({ id: studentProfile.id, course: 'Engenharia' })
+			);
+			expect(result.user.role).toBe('STUDENT');
+		});
+
+		test('should throw 401 for non-existent login', async () => {
+			mockUserRepository.findByLogin.mockResolvedValue(null);
+			mockUserRepository.verifyPassword.mockResolvedValue(false);
+
+			await expect(authService.login('invalid', 'x')).rejects.toThrow('Credenciais inválidas');
+			expect(mockUserRepository.findByLogin).toHaveBeenCalledWith('invalid');
+			// dummy compare for constant-time mitigation
+			expect(mockUserRepository.verifyPassword).toHaveBeenCalled();
+			expect(mockUserSessionRepository.create).not.toHaveBeenCalled();
+		});
+
+		test('should throw 401 for wrong password', async () => {
+			mockUserRepository.findByLogin.mockResolvedValue(mockUser);
+			mockUserRepository.verifyPassword.mockResolvedValue(false);
+
+			await expect(authService.login('joao.silva', 'wrong')).rejects.toThrow('Credenciais inválidas');
+			expect(mockUserSessionRepository.create).not.toHaveBeenCalled();
+		});
+
+		test('should throw 401 when profile is INATIVO', async () => {
+			mockUserRepository.findByLogin.mockResolvedValue(mockUser);
+			mockUserRepository.verifyPassword.mockResolvedValue(true);
+			mockTeacherRepository.findByUserId.mockResolvedValue({
+				...mockTeacherProfile,
+				status: 'INATIVO'
 			});
+
+			await expect(authService.login('joao.silva', 'senha123')).rejects.toThrow('Usuário inativo');
+			expect(mockUserSessionRepository.create).not.toHaveBeenCalled();
+		});
+
+		test('login error should carry status 401', async () => {
+			mockUserRepository.findByLogin.mockResolvedValue(null);
+			mockUserRepository.verifyPassword.mockResolvedValue(false);
+
+			await expect(authService.login('x', 'y')).rejects.toMatchObject({ status: 401 });
 		});
 	});
 
@@ -128,14 +192,39 @@ describe('AuthService - Passwordless Authentication', () => {
 		test('should delete session successfully', async () => {
 			const mockSessionId = '123e4567-e89b-12d3-a456-426614174000';
 
-			// Mock delete method
 			mockUserSessionRepository.delete.mockResolvedValue(1);
 
-			// Execute
 			await authService.logout(mockSessionId);
 
-			// Verify
 			expect(mockUserSessionRepository.delete).toHaveBeenCalledWith(mockSessionId);
+		});
+	});
+
+	describe('changePassword()', () => {
+		const userId = '550e8400-e29b-41d4-a716-446655440001';
+		const userWithHash = { id: userId, login: 'joao', password_hash: '$2b$10$old' };
+
+		test('should update password when current password is correct', async () => {
+			mockUserRepository.findById.mockResolvedValue({ id: userId, login: 'joao' });
+			mockUserRepository.findByLogin.mockResolvedValue(userWithHash);
+			mockUserRepository.verifyPassword.mockResolvedValue(true);
+			mockUserRepository.updatePasswordHash.mockResolvedValue([1]);
+
+			await authService.changePassword(userId, 'oldpass', 'newpass');
+
+			expect(mockUserRepository.verifyPassword).toHaveBeenCalledWith('oldpass', userWithHash.password_hash);
+			expect(mockUserRepository.updatePasswordHash).toHaveBeenCalledWith(userId, 'newpass');
+		});
+
+		test('should throw 400 when current password is wrong', async () => {
+			mockUserRepository.findById.mockResolvedValue({ id: userId, login: 'joao' });
+			mockUserRepository.findByLogin.mockResolvedValue(userWithHash);
+			mockUserRepository.verifyPassword.mockResolvedValue(false);
+
+			await expect(
+				authService.changePassword(userId, 'wrong', 'newpass')
+			).rejects.toThrow('Senha atual incorreta');
+			expect(mockUserRepository.updatePasswordHash).not.toHaveBeenCalled();
 		});
 	});
 
@@ -150,10 +239,8 @@ describe('AuthService - Passwordless Authentication', () => {
 
 			jwt.sign.mockReturnValue(mockToken);
 
-			// Execute
 			const token = authService.generateToken(mockPayload);
 
-			// Verify
 			expect(jwt.sign).toHaveBeenCalledWith(mockPayload, 'test-secret', {
 				expiresIn: '24h'
 			});
@@ -190,10 +277,11 @@ describe('AuthService - Passwordless Authentication', () => {
 	describe('JWT_EXPIRES_IN environment variable', () => {
 		const mockUser = {
 			id: '550e8400-e29b-41d4-a716-446655440001',
-			name: 'Prof. João Silva',
-			email: 'joao.silva@escola.com',
+			login: 'joao.silva',
+			password_hash: '$2b$10$hashedpassword',
 			role: 'TEACHER'
 		};
+		const mockProfile = { id: 'Teacher/abc', name: 'Prof', status: 'ATIVO' };
 
 		const mockSessionId = '123e4567-e89b-12d3-a456-426614174000';
 		const mockToken = 'mock.jwt.token';
@@ -214,13 +302,15 @@ describe('AuthService - Passwordless Authentication', () => {
 		test('should use JWT_EXPIRES_IN env var for session expiration', async () => {
 			process.env.JWT_EXPIRES_IN = '7d';
 
-			mockUserRepository.findByEmail.mockResolvedValue(mockUser);
+			mockUserRepository.findByLogin.mockResolvedValue(mockUser);
+			mockUserRepository.verifyPassword.mockResolvedValue(true);
+			mockTeacherRepository.findByUserId.mockResolvedValue(mockProfile);
 			uuidv4.mockReturnValue(mockSessionId);
 			jwt.sign.mockReturnValue(mockToken);
 			mockUserSessionRepository.create.mockResolvedValue({});
 
 			const before = Date.now();
-			await authService.login('joao.silva@escola.com');
+			await authService.login('joao.silva', 'senha123');
 			const after = Date.now();
 
 			const createCall = mockUserSessionRepository.create.mock.calls[0][0];
@@ -251,15 +341,14 @@ describe('AuthService - Passwordless Authentication', () => {
 			const mockDecoded = {
 				id: '550e8400-e29b-41d4-a716-446655440001',
 				role: 'TEACHER',
-				sessionId: '123e4567-e89b-12d3-a456-426614174000'
+				sessionId: '123e4567-e89b-12d3-a456-426614174000',
+				profileId: 'Teacher/abc'
 			};
 
 			jwt.verify.mockReturnValue(mockDecoded);
 
-			// Execute
 			const decoded = authService.verifyToken(mockToken);
 
-			// Verify
 			expect(jwt.verify).toHaveBeenCalledWith(mockToken, 'test-secret');
 			expect(decoded).toEqual(mockDecoded);
 		});
@@ -272,7 +361,6 @@ describe('AuthService - Passwordless Authentication', () => {
 				throw error;
 			});
 
-			// Execute & Verify
 			expect(() => authService.verifyToken(mockToken)).toThrow('invalid token');
 			expect(jwt.verify).toHaveBeenCalledWith(mockToken, 'test-secret');
 		});
