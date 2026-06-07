@@ -5,9 +5,12 @@ const { parseFhirSort } = require('../utils/sort');
 const { parseReference } = require('../utils/fhirReference');
 
 function buildMineExpression(profileId) {
+  // Só constrói a expressão se profileId for uma Referência FHIR válida
+  // (regex estrita: Teacher|Student/<uuid> — sem aspas/caracteres de escape possíveis).
+  // Essa validação é o que torna a interpolação abaixo segura contra SQL injection.
   if (!profileId || !parseReference(profileId)) return null;
   return Sequelize.literal(
-    `CASE WHEN author = ${Sequelize.escape(profileId)} THEN 0 ELSE 1 END`
+    `CASE WHEN author = '${profileId}' THEN 0 ELSE 1 END`
   );
 }
 

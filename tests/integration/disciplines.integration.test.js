@@ -7,7 +7,7 @@ describe('Disciplines Integration Tests', () => {
 	beforeAll(async () => {
 		const loginResponse = await request(app)
 			.post('/auth/login')
-			.send({ email: 'joao.silva@escola.com' });
+			.send({ login: 'joao.silva', password: 'senha123' });
 
 		token = loginResponse.body.token;
 	});
@@ -45,7 +45,7 @@ describe('Disciplines Integration Tests', () => {
 			// Login como student
 			const studentLogin = await request(app)
 				.post('/auth/login')
-				.send({ email: 'pedro.costa@aluno.com' });
+				.send({ login: 'pedro.costa', password: 'senha123' });
 
 			const studentToken = studentLogin.body.token;
 

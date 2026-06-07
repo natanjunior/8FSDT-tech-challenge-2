@@ -46,7 +46,7 @@ class TeacherService {
       throw err;
     }
 
-    return this.teacherRepository.transaction(async (t) => {
+    const newId = await this.teacherRepository.transaction(async (t) => {
       let userId = null;
       if (userPayload) {
         const existing = await this.userRepository.findByLogin(userPayload.login);
@@ -64,8 +64,11 @@ class TeacherService {
       if (discipline_ids && discipline_ids.length) {
         await this.teacherRepository.setDisciplines(teacher.id, discipline_ids, { transaction: t });
       }
-      return this.getById(teacher.id);
+      return teacher.id;
     });
+
+    // Lido fora da transação (após commit) para enxergar dados persistidos
+    return this.getById(newId);
   }
 
   async update(id, data, requester) {
@@ -79,7 +82,7 @@ class TeacherService {
 
     const { discipline_ids } = data;
     const teacherFields = this._pickFields(data);
-    return this.teacherRepository.transaction(async (t) => {
+    await this.teacherRepository.transaction(async (t) => {
       await this.teacherRepository.update(id, teacherFields, { transaction: t });
       if (Array.isArray(discipline_ids)) {
         if (!(await this.teacherRepository.disciplinesExist(discipline_ids))) {
@@ -90,8 +93,10 @@ class TeacherService {
         }
         await this.teacherRepository.setDisciplines(id, discipline_ids, { transaction: t });
       }
-      return this.getById(id);
     });
+
+    // Lido fora da transação (após commit)
+    return this.getById(id);
   }
 
   async delete(id) {

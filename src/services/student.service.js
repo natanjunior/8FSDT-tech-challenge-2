@@ -44,7 +44,7 @@ class StudentService {
 
     const { user: userPayload } = data;
     const studentFields = this._pickFields(data);
-    return this.studentRepository.transaction(async (t) => {
+    const newId = await this.studentRepository.transaction(async (t) => {
       let userId = null;
       if (userPayload) {
         const existing = await this.userRepository.findByLogin(userPayload.login);
@@ -58,8 +58,11 @@ class StudentService {
         userId = created.id;
       }
       const s = await this.studentRepository.create({ ...studentFields, user_id: userId }, { transaction: t });
-      return this.getById(s.id);
+      return s.id;
     });
+
+    // Lido fora da transação (após commit)
+    return this.getById(newId);
   }
 
   async update(id, data, requester) {
@@ -71,10 +74,12 @@ class StudentService {
     }
     this._assertCanModify(existing, requester);
     const studentFields = this._pickFields(data);
-    return this.studentRepository.transaction(async (t) => {
+    await this.studentRepository.transaction(async (t) => {
       await this.studentRepository.update(id, studentFields, { transaction: t });
-      return this.getById(id);
     });
+
+    // Lido fora da transação (após commit)
+    return this.getById(id);
   }
 
   async delete(id) {

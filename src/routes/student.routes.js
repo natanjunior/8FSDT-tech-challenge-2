@@ -21,7 +21,7 @@ router.get('/', authenticate, authorize(['TEACHER']), listStudentsValidator, val
   studentController.list(req, res)
 );
 
-router.get('/:id', authenticate, authorize(['TEACHER']), idStudentValidator, validate, (req, res) =>
+router.get('/:id(*)', authenticate, authorize(['TEACHER']), idStudentValidator, validate, (req, res) =>
   studentController.getById(req, res)
 );
 
@@ -29,15 +29,15 @@ router.post('/', optionalAuth, createStudentValidator, validate, (req, res) =>
   studentController.create(req, res)
 );
 
-router.put('/:id', authenticate, updateStudentValidator, validate, (req, res) =>
+router.put('/:id(*)', authenticate, updateStudentValidator, validate, (req, res) =>
   studentController.replace(req, res)
 );
 
-router.patch('/:id', authenticate, updateStudentValidator, validate, (req, res) =>
+router.patch('/:id(*)', authenticate, updateStudentValidator, validate, (req, res) =>
   studentController.patch(req, res)
 );
 
-router.delete('/:id', authenticate, authorize(['TEACHER']), idStudentValidator, validate, (req, res) =>
+router.delete('/:id(*)', authenticate, authorize(['TEACHER']), idStudentValidator, validate, (req, res) =>
   studentController.delete(req, res)
 );
 
