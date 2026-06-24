@@ -1,7 +1,7 @@
 # ==============================================================================
 # STAGE 1: Dependencies (Builder)
 # ==============================================================================
-FROM node:18-alpine AS dependencies
+FROM node:25-alpine AS dependencies
 
 WORKDIR /app
 
@@ -14,7 +14,7 @@ RUN npm ci --only=production && npm cache clean --force
 # ==============================================================================
 # STAGE 2: Build (se necessário compilar)
 # ==============================================================================
-FROM node:18-alpine AS builder
+FROM node:25-alpine AS builder
 
 WORKDIR /app
 
@@ -30,7 +30,7 @@ COPY . .
 # ==============================================================================
 # STAGE 3: Development
 # ==============================================================================
-FROM node:18-alpine AS development
+FROM node:25-alpine AS development
 
 WORKDIR /app
 
@@ -52,7 +52,7 @@ CMD ["npm", "run", "dev"]
 # ==============================================================================
 # STAGE 4: Production
 # ==============================================================================
-FROM node:18-alpine AS production
+FROM node:25-alpine AS production
 
 # Metadados da imagem
 LABEL maintainer="grupo28@fiap.com"
