@@ -43,7 +43,8 @@ describe('authenticate middleware', () => {
 		const mockDecoded = {
 			id: '550e8400-e29b-41d4-a716-446655440001',
 			role: 'TEACHER',
-			sessionId: '123e4567-e89b-12d3-a456-426614174000'
+			sessionId: '123e4567-e89b-12d3-a456-426614174000',
+			profileId: 'Teacher/550e8400-e29b-41d4-a716-446655440099'
 		};
 		const mockSession = {
 			id: mockDecoded.sessionId,
@@ -64,10 +65,39 @@ describe('authenticate middleware', () => {
 		expect(req.user).toEqual({
 			id: mockDecoded.id,
 			role: mockDecoded.role,
-			sessionId: mockDecoded.sessionId
+			sessionId: mockDecoded.sessionId,
+			profileId: mockDecoded.profileId
 		});
 		expect(next).toHaveBeenCalled();
 		expect(res.status).not.toHaveBeenCalled();
+	});
+
+	test('should set profileId to null when token has no profileId', async () => {
+		const mockToken = 'valid.jwt.token';
+		const mockDecoded = {
+			id: '550e8400-e29b-41d4-a716-446655440001',
+			role: 'STUDENT',
+			sessionId: '123e4567-e89b-12d3-a456-426614174000'
+		};
+		const mockSession = {
+			id: mockDecoded.sessionId,
+			user_id: mockDecoded.id,
+			expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000)
+		};
+
+		req.headers.authorization = `Bearer ${mockToken}`;
+		mockAuthService.verifyToken.mockReturnValue(mockDecoded);
+		mockUserSessionRepository.findById.mockResolvedValue(mockSession);
+
+		await authenticate(req, res, next);
+
+		expect(req.user).toEqual({
+			id: mockDecoded.id,
+			role: mockDecoded.role,
+			sessionId: mockDecoded.sessionId,
+			profileId: null
+		});
+		expect(next).toHaveBeenCalled();
 	});
 
 	test('should return 401 when Authorization header is missing', async () => {

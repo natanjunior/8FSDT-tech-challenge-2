@@ -1,48 +1,43 @@
 'use strict';
 
-/** @type {import('sequelize-cli').Migration} */
+const bcrypt = require('bcrypt');
+
+const PLAIN = 'senha123';
+
 module.exports = {
-	async up(queryInterface, Sequelize) {
-		// 4 usuários: 2 TEACHER + 2 STUDENT (SEM campo password!)
-		const users = [
-			{
-				id: '550e8400-e29b-41d4-a716-446655440001',
-				name: 'Prof. João Silva',
-				email: 'joao.silva@escola.com',
-				role: 'TEACHER',
-				created_at: new Date(),
-				updated_at: new Date()
-			},
-			{
-				id: '550e8400-e29b-41d4-a716-446655440002',
-				name: 'Profa. Maria Santos',
-				email: 'maria.santos@escola.com',
-				role: 'TEACHER',
-				created_at: new Date(),
-				updated_at: new Date()
-			},
-			{
-				id: '550e8400-e29b-41d4-a716-446655440003',
-				name: 'Aluno Pedro Costa',
-				email: 'pedro.costa@aluno.com',
-				role: 'STUDENT',
-				created_at: new Date(),
-				updated_at: new Date()
-			},
-			{
-				id: '550e8400-e29b-41d4-a716-446655440004',
-				name: 'Aluna Ana Oliveira',
-				email: 'ana.oliveira@aluno.com',
-				role: 'STUDENT',
-				created_at: new Date(),
-				updated_at: new Date()
-			}
-		];
+  async up(queryInterface) {
+    const hash = await bcrypt.hash(PLAIN, 10);
+    const now = new Date();
 
-		await queryInterface.bulkInsert('users', users, {});
-	},
+    const users = [
+      // Professores
+      { id: '111e8400-e29b-41d4-a716-446655440001', login: 'joao.silva', role: 'TEACHER' },
+      { id: '111e8400-e29b-41d4-a716-446655440002', login: 'maria.santos', role: 'TEACHER' },
+      { id: '111e8400-e29b-41d4-a716-446655440003', login: 'carlos.mendes', role: 'TEACHER' },
+      { id: '111e8400-e29b-41d4-a716-446655440004', login: 'beatriz.rocha', role: 'TEACHER' },
+      { id: '111e8400-e29b-41d4-a716-446655440005', login: 'anderson.luz', role: 'TEACHER' },
+      // Alunos
+      { id: '111e8400-e29b-41d4-a716-446655440006', login: 'pedro.costa', role: 'STUDENT' },
+      { id: '111e8400-e29b-41d4-a716-446655440007', login: 'ana.oliveira', role: 'STUDENT' },
+      { id: '111e8400-e29b-41d4-a716-446655440008', login: 'lucas.martins', role: 'STUDENT' },
+      { id: '111e8400-e29b-41d4-a716-446655440009', login: 'juliana.dias', role: 'STUDENT' },
+      { id: '111e8400-e29b-41d4-a716-446655440010', login: 'marcos.vinicius', role: 'STUDENT' }
+    ];
 
-	async down(queryInterface, Sequelize) {
-		await queryInterface.bulkDelete('users', null, {});
-	}
+    await queryInterface.bulkInsert(
+      'users',
+      users.map((u) => ({
+        id: u.id,
+        login: u.login,
+        password_hash: hash,
+        role: u.role,
+        created_at: now,
+        updated_at: now
+      }))
+    );
+  },
+
+  async down(queryInterface) {
+    await queryInterface.bulkDelete('users', null, {});
+  }
 };

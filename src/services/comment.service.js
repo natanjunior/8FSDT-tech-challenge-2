@@ -6,84 +6,46 @@ class CommentService {
     this.postRepository = postRepository;
   }
 
-  /**
-   * Busca comentários com paginação e ordenação.
-   *
-   * @param {Object} filters  { postId?, page, limit, sort? }
-   * @param {string|null} userRole
-   * @param {string|null} userId
-   * @param {string|null} anonymousId  Valor do header X-Anonymous-Id
-   */
-  async searchComments(filters = {}, userRole, userId, anonymousId) {
+  async searchComments(filters = {}, userRole, profileId) {
     const page = parseInt(filters.page) || 1;
     const limit = Math.min(parseInt(filters.limit) || 10, 50);
     const sort = filters.sort;
     const postId = filters.postId;
 
     const { count, rows } = await this.commentRepository.search({
-      postId,
-      page,
-      limit,
-      sort,
-      userId,
-      anonymousId
+      postId, page, limit, sort, profileId
     });
 
-    const totalPages = Math.ceil(count / limit);
-
     return {
-      data: rows.map((c) =>
-        this.commentRepository.serialize(c, userRole, userId, anonymousId)
-      ),
-      pagination: { page, limit, total: count, totalPages }
+      data: rows.map((c) => this.commentRepository.serialize(c, userRole, profileId)),
+      pagination: { page, limit, total: count, totalPages: Math.ceil(count / limit) }
     };
   }
 
-  /**
-   * Cria um novo comentário.
-   *
-   * @param {Object} body  { post_id, content, author_name? }
-   * @param {string|null} userId
-   * @param {string|null} userRole
-   * @param {string|null} anonymousId
-   */
-  async createComment(body, userId, userRole, anonymousId) {
-    const post = await this.postRepository.findById(body.post_id);
-
-    if (!post) {
-      throw new Error('Post não encontrado');
+  async createComment(body, profileId, userRole) {
+    if (!profileId) {
+      const e = new Error('Não autenticado'); e.status = 401; throw e;
     }
-
+    const post = await this.postRepository.findById(body.post_id);
+    if (!post) {
+      const e = new Error('Post não encontrado'); e.status = 404; throw e;
+    }
     const comment = await this.commentRepository.create({
       post_id: body.post_id,
       content: body.content,
-      author_name: body.author_name || null,
-      user_id: userId || null,
-      anonymous_id: userId ? null : (anonymousId || null)
+      author: profileId
     });
-
-    return this.commentRepository.serialize(comment, userRole, userId, anonymousId);
+    const enriched = await this.commentRepository.search({ postId: body.post_id, page: 1, limit: 50, profileId });
+    const mine = enriched.rows.find((r) => r.raw.id === comment.id);
+    return this.commentRepository.serialize(mine, userRole, profileId);
   }
 
-  /**
-   * Deleta um comentário se a identidade tiver permissão.
-   *
-   * @param {string} commentId
-   * @param {string|null} userRole
-   * @param {string|null} userId
-   * @param {string|null} anonymousId
-   */
-  async deleteComment(commentId, userRole, userId, anonymousId) {
+  async deleteComment(commentId, userRole, profileId) {
     const comment = await this.commentRepository.findById(commentId);
-
-    if (!comment) {
-      throw new Error('Comentário não encontrado');
+    if (!comment) { const e = new Error('Comentário não encontrado'); e.status = 404; throw e; }
+    if (!this.commentRepository.canDelete(comment, userRole, profileId)) {
+      const e = new Error('Sem permissão para excluir este comentário'); e.status = 403; throw e;
     }
-
-    if (!this.commentRepository.canDelete(comment, userRole, userId, anonymousId)) {
-      throw new Error('Sem permissão para excluir este comentário');
-    }
-
     await this.commentRepository.delete(commentId);
   }
 }

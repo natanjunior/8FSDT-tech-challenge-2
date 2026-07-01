@@ -30,13 +30,13 @@ describe('PostService - CRUD with Role-Based Visibility', () => {
 
 	describe('listPosts()', () => {
 		const mockPosts = [
-			{ id: '1', title: 'Post 1', status: 'PUBLISHED', author_id: 'u1', discipline_id: 'd1', author: { id: 'u1', name: 'Teacher', role: 'TEACHER' }, discipline: { id: 'd1', label: 'Math' } },
-			{ id: '2', title: 'Post 2', status: 'DRAFT', author_id: 'u1', discipline_id: 'd1', author: { id: 'u1', name: 'Teacher', role: 'TEACHER' }, discipline: { id: 'd1', label: 'Math' } }
+			{ id: '1', title: 'Post 1', status: 'PUBLISHED', author: 'Teacher/u1', discipline_id: 'd1', author_teacher: { id: 'Teacher/u1', name: 'Teacher', pronouns: 'ele/dele' }, discipline: { id: 'd1', label: 'Math' } },
+			{ id: '2', title: 'Post 2', status: 'DRAFT', author: 'Teacher/u1', discipline_id: 'd1', author_teacher: { id: 'Teacher/u1', name: 'Teacher', pronouns: 'ele/dele' }, discipline: { id: 'd1', label: 'Math' } }
 		];
 
 		const serializedPosts = [
-			{ id: '1', title: 'Post 1', status: 'PUBLISHED', author: { id: 'u1', name: 'Teacher', role: 'TEACHER' }, discipline: { id: 'd1', label: 'Math' }, comments_count: 0, reads_count: 0 },
-			{ id: '2', title: 'Post 2', status: 'DRAFT', author: { id: 'u1', name: 'Teacher', role: 'TEACHER' }, discipline: { id: 'd1', label: 'Math' }, comments_count: 0, reads_count: 0 }
+			{ id: '1', title: 'Post 1', status: 'PUBLISHED', author: { id: 'Teacher/u1', name: 'Teacher', pronouns: 'ele/dele' }, discipline: { id: 'd1', label: 'Math' }, created_at: undefined, updated_at: undefined, comments_count: 0, reads_count: 0 },
+			{ id: '2', title: 'Post 2', status: 'DRAFT', author: { id: 'Teacher/u1', name: 'Teacher', pronouns: 'ele/dele' }, discipline: { id: 'd1', label: 'Math' }, created_at: undefined, updated_at: undefined, comments_count: 0, reads_count: 0 }
 		];
 
 		test('should return all posts for TEACHER (no status filter)', async () => {
@@ -137,9 +137,9 @@ describe('PostService - CRUD with Role-Based Visibility', () => {
 			id: '1',
 			title: 'Test Post',
 			status,
-			author_id: 'u1',
+			author: 'Teacher/u1',
 			discipline_id: 'd1',
-			author: { id: 'u1', name: 'Teacher', role: 'TEACHER' },
+			author_teacher: { id: 'Teacher/u1', name: 'Teacher', pronouns: 'ele/dele' },
 			discipline: { id: 'd1', label: 'Math' }
 		});
 
@@ -150,8 +150,9 @@ describe('PostService - CRUD with Role-Based Visibility', () => {
 
 			expect(mockPostRepository.findById).toHaveBeenCalledWith('1');
 			expect(result).not.toHaveProperty('author_id');
+			expect(result).not.toHaveProperty('author_teacher');
 			expect(result).not.toHaveProperty('discipline_id');
-			expect(result.author).toEqual({ id: 'u1', name: 'Teacher', role: 'TEACHER' });
+			expect(result.author).toEqual({ id: 'Teacher/u1', name: 'Teacher', pronouns: 'ele/dele' });
 			expect(result.discipline).toEqual({ id: 'd1', label: 'Math' });
 		});
 
@@ -221,6 +222,8 @@ describe('PostService - CRUD with Role-Based Visibility', () => {
 	});
 
 	describe('createPost()', () => {
+		const profileId = 'Teacher/u1';
+
 		test('should create post successfully', async () => {
 			const mockData = {
 				title: 'New Post',
@@ -228,23 +231,23 @@ describe('PostService - CRUD with Role-Based Visibility', () => {
 				discipline_id: '1',
 				status: 'DRAFT'
 			};
-			const mockCreatedPost = { id: '1', ...mockData, author_id: 'user-123' };
+			const mockCreatedPost = { id: '1', ...mockData, author: profileId };
 			const mockPostWithIncludes = {
 				...mockCreatedPost,
-				author: { id: 'user-123', name: 'Teacher', role: 'TEACHER' },
+				author_teacher: { id: profileId, name: 'Teacher', pronouns: 'ele/dele' },
 				discipline: { id: '1', label: 'Math' }
 			};
 
 			mockPostRepository.create.mockResolvedValue(mockCreatedPost);
 			mockPostRepository.findById.mockResolvedValue(mockPostWithIncludes);
 
-			const result = await postService.createPost(mockData, 'user-123');
+			const result = await postService.createPost(mockData, profileId);
 
 			expect(mockPostRepository.create).toHaveBeenCalledWith(
 				expect.objectContaining({
 					title: mockData.title,
 					content: mockData.content,
-					author_id: 'user-123',
+					author: profileId,
 					discipline_id: mockData.discipline_id,
 					status: 'DRAFT',
 					published_at: null // DRAFT doesn't set published_at
@@ -252,8 +255,9 @@ describe('PostService - CRUD with Role-Based Visibility', () => {
 			);
 			// Result should be serialized (no FK fields)
 			expect(result).not.toHaveProperty('author_id');
+			expect(result).not.toHaveProperty('author_teacher');
 			expect(result).not.toHaveProperty('discipline_id');
-			expect(result.author).toEqual({ id: 'user-123', name: 'Teacher', role: 'TEACHER' });
+			expect(result.author).toEqual({ id: profileId, name: 'Teacher', pronouns: 'ele/dele' });
 		});
 
 		test('should set published_at when status is PUBLISHED', async () => {
@@ -266,13 +270,27 @@ describe('PostService - CRUD with Role-Based Visibility', () => {
 			mockPostRepository.create.mockResolvedValue({ id: '1', ...mockData });
 			mockPostRepository.findById.mockResolvedValue({ id: '1' });
 
-			await postService.createPost(mockData, 'user-123');
+			await postService.createPost(mockData, profileId);
 
 			expect(mockPostRepository.create).toHaveBeenCalledWith(
 				expect.objectContaining({
 					published_at: expect.any(Date)
 				})
 			);
+		});
+
+		test('should throw 403 when profileId is not a Teacher reference', async () => {
+			await expect(
+				postService.createPost({ title: 'x', content: 'y' }, 'Student/abc')
+			).rejects.toThrow('Apenas professores podem criar posts');
+			expect(mockPostRepository.create).not.toHaveBeenCalled();
+		});
+
+		test('should throw 403 when profileId is missing', async () => {
+			await expect(
+				postService.createPost({ title: 'x', content: 'y' }, null)
+			).rejects.toThrow('Apenas professores podem criar posts');
+			expect(mockPostRepository.create).not.toHaveBeenCalled();
 		});
 	});
 

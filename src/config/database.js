@@ -26,7 +26,7 @@ module.exports = {
   test: {
     username: process.env.DB_USER || 'postgres',
     password: process.env.DB_PASSWORD || 'root',
-    database: process.env.DB_NAME || 'blog_api_test',
+    database: process.env.DB_NAME_TEST || 'blog_api_test',
     host: process.env.DB_HOST || 'localhost',
     port: process.env.DB_PORT || 5433,
     dialect: 'postgres',

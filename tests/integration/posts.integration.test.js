@@ -1,22 +1,98 @@
+'use strict';
+
 const request = require('supertest');
+const bcrypt = require('bcrypt');
 const app = require('../../src/app');
+const db = require('../../src/models');
+
+// IDs conhecidos usados nos testes (criados no beforeAll)
+const DISCIPLINE_ID = '660e8400-e29b-41d4-a716-446655440001';
+const TEACHER_ID = 'Teacher/550e8400-e29b-41d4-a716-446655440001';
+const POST_PUBLISHED_ID = '880e8400-e29b-41d4-a716-446655440001';
+const POST_EDITABLE_ID = '880e8400-e29b-41d4-a716-446655440003';
+const POST_DRAFT_ID = '880e8400-e29b-41d4-a716-446655440005';
 
 describe('Posts Integration Tests', () => {
 	let teacherToken;
 	let studentToken;
 
 	beforeAll(async () => {
-		// Login teacher
+		await db.sequelize.sync({ force: true });
+
+		const hash = await bcrypt.hash('senha123', 10);
+
+		// Disciplina conhecida
+		await db.Discipline.create({ id: DISCIPLINE_ID, label: 'Matemática' });
+
+		// Usuário + perfil TEACHER (necessário para criar posts via profileId)
+		const teacherUser = await db.User.create({
+			login: 'joao.silva',
+			password_hash: hash,
+			role: 'TEACHER'
+		});
+		await db.Teacher.create({
+			id: TEACHER_ID,
+			name: 'João Silva',
+			pronouns: 'ele/dele',
+			status: 'ATIVO',
+			user_id: teacherUser.id
+		});
+
+		// Usuário + perfil STUDENT
+		const studentUser = await db.User.create({
+			login: 'pedro.costa',
+			password_hash: hash,
+			role: 'STUDENT'
+		});
+		await db.Student.create({
+			name: 'Pedro Costa',
+			status: 'ATIVO',
+			user_id: studentUser.id
+		});
+
+		// Posts conhecidos para os casos GET/PUT/PATCH/DELETE por id
+		await db.Post.create({
+			id: POST_PUBLISHED_ID,
+			title: 'Post Publicado de Exemplo',
+			content: 'Conteúdo do post publicado com mais de 10 caracteres',
+			author: TEACHER_ID,
+			discipline_id: DISCIPLINE_ID,
+			status: 'PUBLISHED',
+			published_at: new Date()
+		});
+		await db.Post.create({
+			id: POST_EDITABLE_ID,
+			title: 'Post Editável de Exemplo',
+			content: 'Conteúdo do post editável com mais de 10 caracteres',
+			author: TEACHER_ID,
+			discipline_id: DISCIPLINE_ID,
+			status: 'PUBLISHED',
+			published_at: new Date()
+		});
+		await db.Post.create({
+			id: POST_DRAFT_ID,
+			title: 'Post Rascunho de Exemplo',
+			content: 'Conteúdo do post rascunho com mais de 10 caracteres',
+			author: TEACHER_ID,
+			discipline_id: DISCIPLINE_ID,
+			status: 'DRAFT',
+			published_at: null
+		});
+
+		// Tokens via login + password
 		const teacherLogin = await request(app)
 			.post('/auth/login')
-			.send({ email: 'joao.silva@escola.com' });
+			.send({ login: 'joao.silva', password: 'senha123' });
 		teacherToken = teacherLogin.body.token;
 
-		// Login student
 		const studentLogin = await request(app)
 			.post('/auth/login')
-			.send({ email: 'pedro.costa@aluno.com' });
+			.send({ login: 'pedro.costa', password: 'senha123' });
 		studentToken = studentLogin.body.token;
+	});
+
+	afterAll(async () => {
+		await db.sequelize.close();
 	});
 
 	describe('GET /posts', () => {
@@ -67,7 +143,7 @@ describe('Posts Integration Tests', () => {
 	describe('GET /posts/:id', () => {
 		test('TEACHER deve retornar post PUBLISHED com detalhes', async () => {
 			const response = await request(app)
-				.get('/posts/880e8400-e29b-41d4-a716-446655440001')
+				.get(`/posts/${POST_PUBLISHED_ID}`)
 				.set('Authorization', `Bearer ${teacherToken}`);
 
 			expect(response.status).toBe(200);
@@ -76,7 +152,10 @@ describe('Posts Integration Tests', () => {
 			expect(response.body).toHaveProperty('author');
 			expect(response.body.author).toHaveProperty('id');
 			expect(response.body.author).toHaveProperty('name');
-			expect(response.body.author).toHaveProperty('role');
+			expect(response.body.author).toHaveProperty('pronouns');
+			// author não expõe mais email nem role
+			expect(response.body.author).not.toHaveProperty('email');
+			expect(response.body.author).not.toHaveProperty('role');
 			expect(response.body).toHaveProperty('discipline');
 			expect(response.body.discipline).toHaveProperty('id');
 			expect(response.body.discipline).toHaveProperty('label');
@@ -86,8 +165,7 @@ describe('Posts Integration Tests', () => {
 		});
 
 		test('sem token deve retornar post PUBLISHED (200)', async () => {
-			const response = await request(app)
-				.get('/posts/880e8400-e29b-41d4-a716-446655440001');
+			const response = await request(app).get(`/posts/${POST_PUBLISHED_ID}`);
 
 			expect(response.status).toBe(200);
 			expect(response.body.status).toBe('PUBLISHED');
@@ -96,8 +174,7 @@ describe('Posts Integration Tests', () => {
 		});
 
 		test('sem token deve retornar 403 para post DRAFT', async () => {
-			const response = await request(app)
-				.get('/posts/880e8400-e29b-41d4-a716-446655440005');
+			const response = await request(app).get(`/posts/${POST_DRAFT_ID}`);
 
 			expect(response.status).toBe(403);
 			expect(response.body).toHaveProperty('error');
@@ -105,7 +182,7 @@ describe('Posts Integration Tests', () => {
 
 		test('STUDENT deve retornar post PUBLISHED (200)', async () => {
 			const response = await request(app)
-				.get('/posts/880e8400-e29b-41d4-a716-446655440001')
+				.get(`/posts/${POST_PUBLISHED_ID}`)
 				.set('Authorization', `Bearer ${studentToken}`);
 
 			expect(response.status).toBe(200);
@@ -114,7 +191,7 @@ describe('Posts Integration Tests', () => {
 
 		test('STUDENT deve retornar 403 para post DRAFT', async () => {
 			const response = await request(app)
-				.get('/posts/880e8400-e29b-41d4-a716-446655440005')
+				.get(`/posts/${POST_DRAFT_ID}`)
 				.set('Authorization', `Bearer ${studentToken}`);
 
 			expect(response.status).toBe(403);
@@ -123,7 +200,7 @@ describe('Posts Integration Tests', () => {
 
 		test('TEACHER deve retornar post DRAFT (200)', async () => {
 			const response = await request(app)
-				.get('/posts/880e8400-e29b-41d4-a716-446655440005')
+				.get(`/posts/${POST_DRAFT_ID}`)
 				.set('Authorization', `Bearer ${teacherToken}`);
 
 			expect(response.status).toBe(200);
@@ -147,16 +224,21 @@ describe('Posts Integration Tests', () => {
 				.send({
 					title: 'Novo Post de Teste',
 					content: 'Conteúdo do novo post de teste com mais de 10 caracteres',
-					discipline_id: '660e8400-e29b-41d4-a716-446655440001',
-					status: 'PUBLISHED' // v12: string ENUM
+					discipline_id: DISCIPLINE_ID,
+					status: 'PUBLISHED'
 				});
 
 			expect(response.status).toBe(201);
-			expect(response.body.status).toBe('PUBLISHED'); // v12: string direto
+			expect(response.body.status).toBe('PUBLISHED');
 			expect(response.body.published_at).not.toBeNull();
 			expect(response.body).not.toHaveProperty('author_id');
 			expect(response.body).not.toHaveProperty('discipline_id');
 			expect(response.body).toHaveProperty('author');
+			// author derivado do token: shape { id, name, pronouns }
+			expect(response.body.author).toHaveProperty('id');
+			expect(response.body.author).toHaveProperty('name');
+			expect(response.body.author).toHaveProperty('pronouns');
+			expect(response.body.author.id).toBe(TEACHER_ID);
 			expect(response.body).toHaveProperty('discipline');
 		});
 
@@ -165,10 +247,10 @@ describe('Posts Integration Tests', () => {
 				.post('/posts')
 				.set('Authorization', `Bearer ${teacherToken}`)
 				.send({
-					title: 'Post Rascunho',
-					content: 'Conteúdo de rascunho',
-					discipline_id: '660e8400-e29b-41d4-a716-446655440001',
-					status: 'DRAFT' // v12: string ENUM
+					title: 'Post Rascunho Novo',
+					content: 'Conteúdo de rascunho com mais de 10 caracteres',
+					discipline_id: DISCIPLINE_ID,
+					status: 'DRAFT'
 				});
 
 			expect(response.status).toBe(201);
@@ -182,8 +264,8 @@ describe('Posts Integration Tests', () => {
 				.set('Authorization', `Bearer ${studentToken}`)
 				.send({
 					title: 'Tentativa de Post',
-					content: 'Conteúdo',
-					discipline_id: '660e8400-e29b-41d4-a716-446655440001',
+					content: 'Conteúdo com mais de 10 caracteres',
+					discipline_id: DISCIPLINE_ID,
 					status: 'PUBLISHED'
 				});
 
@@ -193,7 +275,7 @@ describe('Posts Integration Tests', () => {
 		test('sem token não deve criar post (401)', async () => {
 			const response = await request(app).post('/posts').send({
 				title: 'Tentativa sem Auth',
-				content: 'Conteúdo',
+				content: 'Conteúdo com mais de 10 caracteres',
 				status: 'PUBLISHED'
 			});
 
@@ -204,7 +286,7 @@ describe('Posts Integration Tests', () => {
 	describe('PUT /posts/:id', () => {
 		test('TEACHER deve substituir post completamente', async () => {
 			const response = await request(app)
-				.put('/posts/880e8400-e29b-41d4-a716-446655440003')
+				.put(`/posts/${POST_EDITABLE_ID}`)
 				.set('Authorization', `Bearer ${teacherToken}`)
 				.send({
 					title: 'Título Substituído Completo',
@@ -220,7 +302,7 @@ describe('Posts Integration Tests', () => {
 
 		test('PUT sem campo obrigatório deve retornar 400', async () => {
 			const response = await request(app)
-				.put('/posts/880e8400-e29b-41d4-a716-446655440003')
+				.put(`/posts/${POST_EDITABLE_ID}`)
 				.set('Authorization', `Bearer ${teacherToken}`)
 				.send({
 					title: 'Apenas Título'
@@ -231,7 +313,7 @@ describe('Posts Integration Tests', () => {
 
 		test('STUDENT não deve substituir post (403)', async () => {
 			const response = await request(app)
-				.put('/posts/880e8400-e29b-41d4-a716-446655440003')
+				.put(`/posts/${POST_EDITABLE_ID}`)
 				.set('Authorization', `Bearer ${studentToken}`)
 				.send({
 					title: 'Tentativa de Substituição',
@@ -244,7 +326,7 @@ describe('Posts Integration Tests', () => {
 
 		test('PUT sem discipline_id deve setar como null', async () => {
 			const response = await request(app)
-				.put('/posts/880e8400-e29b-41d4-a716-446655440003')
+				.put(`/posts/${POST_EDITABLE_ID}`)
 				.set('Authorization', `Bearer ${teacherToken}`)
 				.send({
 					title: 'Post Sem Disciplina Teste',
@@ -260,7 +342,7 @@ describe('Posts Integration Tests', () => {
 	describe('PATCH /posts/:id', () => {
 		test('TEACHER deve editar post parcialmente (sem ownership check)', async () => {
 			const response = await request(app)
-				.patch('/posts/880e8400-e29b-41d4-a716-446655440003')
+				.patch(`/posts/${POST_EDITABLE_ID}`)
 				.set('Authorization', `Bearer ${teacherToken}`)
 				.send({
 					title: 'Título Editado via Teste'
@@ -274,7 +356,7 @@ describe('Posts Integration Tests', () => {
 
 		test('STUDENT não deve editar post (403)', async () => {
 			const response = await request(app)
-				.patch('/posts/880e8400-e29b-41d4-a716-446655440003')
+				.patch(`/posts/${POST_EDITABLE_ID}`)
 				.set('Authorization', `Bearer ${studentToken}`)
 				.send({
 					title: 'Tentativa de Edição'
@@ -292,8 +374,8 @@ describe('Posts Integration Tests', () => {
 				.set('Authorization', `Bearer ${teacherToken}`)
 				.send({
 					title: 'Post para Deletar',
-					content: 'Será deletado',
-					discipline_id: '660e8400-e29b-41d4-a716-446655440001',
+					content: 'Será deletado com mais de 10 caracteres',
+					discipline_id: DISCIPLINE_ID,
 					status: 'DRAFT'
 				});
 
@@ -316,7 +398,7 @@ describe('Posts Integration Tests', () => {
 
 		test('STUDENT não deve deletar post (403)', async () => {
 			const response = await request(app)
-				.delete('/posts/880e8400-e29b-41d4-a716-446655440001')
+				.delete(`/posts/${POST_PUBLISHED_ID}`)
 				.set('Authorization', `Bearer ${studentToken}`);
 
 			expect(response.status).toBe(403);
@@ -392,24 +474,14 @@ describe('Posts Integration Tests', () => {
 	});
 
 	describe('GET /posts/search — discipline e status', () => {
-		let knownDisciplineId;
-
-		beforeAll(async () => {
-			// Buscar um discipline_id real da seed (endpoint requer auth)
-			const disciplinesResponse = await request(app)
-				.get('/disciplines')
-				.set('Authorization', `Bearer ${teacherToken}`);
-			knownDisciplineId = disciplinesResponse.body.data?.[0]?.id || disciplinesResponse.body[0]?.id;
-		});
-
 		test('?discipline=<uuid> retorna apenas posts da disciplina', async () => {
 			const response = await request(app)
-				.get(`/posts/search?discipline=${knownDisciplineId}`)
+				.get(`/posts/search?discipline=${DISCIPLINE_ID}`)
 				.set('Authorization', `Bearer ${teacherToken}`);
 
 			expect(response.status).toBe(200);
 			response.body.data.forEach((post) => {
-				expect(post.discipline.id).toBe(knownDisciplineId);
+				expect(post.discipline.id).toBe(DISCIPLINE_ID);
 			});
 		});
 
