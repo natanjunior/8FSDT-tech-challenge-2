@@ -455,15 +455,27 @@ describe('Posts Integration Tests', () => {
 		});
 
 		test('sort=title retorna posts ordenados por título ASC', async () => {
-			const response = await request(app)
-				.get('/posts?sort=title')
+			// A ordenação por título é aplicada pelo PostgreSQL (ORDER BY title).
+			// Não usamos localeCompare do JS como referência porque a collation do
+			// banco varia entre ambientes (dev local vs CI alpine) e difere da do JS,
+			// principalmente com acentos. Verificamos de forma agnóstica à collation:
+			// ASC e DESC devem produzir ordens exatamente inversas — o que comprova
+			// que o sort é aplicado e que a direção é respeitada.
+			const asc = await request(app)
+				.get('/posts?sort=title&limit=100')
+				.set('Authorization', `Bearer ${teacherToken}`);
+			const desc = await request(app)
+				.get('/posts?sort=-title&limit=100')
 				.set('Authorization', `Bearer ${teacherToken}`);
 
-			expect(response.status).toBe(200);
-			const titles = response.body.data.map((p) => p.title);
-			for (let i = 1; i < titles.length; i++) {
-				expect(titles[i - 1].localeCompare(titles[i])).toBeLessThanOrEqual(0);
-			}
+			expect(asc.status).toBe(200);
+			expect(desc.status).toBe(200);
+
+			const ascTitles = asc.body.data.map((p) => p.title);
+			const descTitles = desc.body.data.map((p) => p.title);
+
+			expect(ascTitles.length).toBeGreaterThan(1);
+			expect(ascTitles).toEqual([...descTitles].reverse());
 		});
 
 		test('sort campo inválido retorna 200 com ordem default', async () => {
